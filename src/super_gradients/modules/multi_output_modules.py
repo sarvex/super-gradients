@@ -88,12 +88,13 @@ class MultiOutputModule(nn.Module):
 
         module._modules = self._slice_odict(module._modules, 0, last_index + 1)
 
-        next_level_paths = []
-        for path in output_paths:
-            if isinstance(path, (list, ListConfig)) and path[0] == last_key and len(path) > 1:
-                next_level_paths.append(path[1:])
-
-        if len(next_level_paths) > 0:
+        if next_level_paths := [
+            path[1:]
+            for path in output_paths
+            if isinstance(path, (list, ListConfig))
+            and path[0] == last_key
+            and len(path) > 1
+        ]:
             self._prune(module._modules[str(last_key)], next_level_paths)
 
     def _slice_odict(self, odict: OrderedDict, start: int, end: int):

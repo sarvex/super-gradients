@@ -59,7 +59,7 @@ class DEKRVisualizationCallback(PhaseCallback):
         return image
 
     @classmethod
-    def visualize_heatmap(self, heatmap: Tensor, apply_sigmoid: bool, dsize, min_value=None, max_value=None, colormap=cv2.COLORMAP_JET):
+    def visualize_heatmap(cls, heatmap: Tensor, apply_sigmoid: bool, dsize, min_value=None, max_value=None, colormap=cv2.COLORMAP_JET):
         if apply_sigmoid:
             heatmap = heatmap.sigmoid()
 
@@ -116,8 +116,6 @@ class DEKRVisualizationCallback(PhaseCallback):
     @torch.no_grad()
     def visualize_batch(self, inputs, predictions, targets):
         num_samples = len(inputs)
-        batch_imgs = []
-
         gt_heatmap, mask, _, _ = targets
 
         # Check whether model also produce supervised output predictions
@@ -126,10 +124,15 @@ class DEKRVisualizationCallback(PhaseCallback):
         else:
             (heatmap, _), (_, _) = predictions
 
-        for i in range(num_samples):
-            batch_imgs.append(self.visualize_sample(inputs[i], predicted_heatmap=heatmap[i], target_heatmap=gt_heatmap[i], target_mask=mask[i]))
-
-        return batch_imgs
+        return [
+            self.visualize_sample(
+                inputs[i],
+                predicted_heatmap=heatmap[i],
+                target_heatmap=gt_heatmap[i],
+                target_mask=mask[i],
+            )
+            for i in range(num_samples)
+        ]
 
     def visualize_sample(self, input, predicted_heatmap, target_heatmap, target_mask):
         image_rgb = self.denormalize_image(input)

@@ -6,7 +6,7 @@ class IllegalRangeForLossAttributeException(Exception):
     """
 
     def __init__(self, range_vals: tuple, attr_name: str):
-        self.message = attr_name + " must be in range " + str(range_vals)
+        self.message = f"{attr_name} must be in range {range_vals}"
         super().__init__(self.message)
 
 
@@ -20,5 +20,5 @@ class RequiredLossComponentReductionException(Exception):
     """
 
     def __init__(self, component_name: str, reduction: str, required_reduction: str):
-        self.message = component_name + ".reduction must be " + required_reduction + ", got" + reduction
+        self.message = f"{component_name}.reduction must be {required_reduction}, got{reduction}"
         super().__init__(self.message)

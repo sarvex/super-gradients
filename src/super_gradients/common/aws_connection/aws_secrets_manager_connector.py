@@ -30,12 +30,11 @@ class AWSSecretsManagerConnector:
         aws_secrets_dict = AWSSecretsManagerConnector.__get_secrets_manager_dict_for_secret_name(aws_env=aws_env, secret_name=secret_name)
 
         secret_key = ".".join([aws_env.upper(), secret_key])
-        if secret_key not in aws_secrets_dict.keys():
-            error = f"[{current_class_name}] - Secret Key ({secret_key}) not Found in AWS Secret: " + secret_name
-            logger.error(error)
-            raise EnvironmentError(error)
-        else:
+        if secret_key in aws_secrets_dict.keys():
             return aws_secrets_dict[secret_key]
+        error = f"[{current_class_name}] - Secret Key ({secret_key}) not Found in AWS Secret: {secret_name}"
+        logger.error(error)
+        raise EnvironmentError(error)
 
     @staticmethod
     @explicit_params_validation(validation_type="NoneOrEmpty")
@@ -102,9 +101,7 @@ class AWSSecretsManagerConnector:
                 )
             logger.debug(f'Fetching the secret "{secret_name}" in env "{aws_env}"')
             aws_secrets = AWSSecretsManagerConnector.current_environment_client.get_secret_value(SecretId=secrets_path)
-            aws_secrets_dict = json.loads(aws_secrets["SecretString"])
-            return aws_secrets_dict
-
+            return json.loads(aws_secrets["SecretString"])
         except Exception as ex:
             error = (
                 f'[{current_class_name}] - Caught Exception while trying to connect to aws to get credentials from secrets manager: "{ex}" for {secrets_path}'
@@ -125,8 +122,9 @@ class AWSSecretsManagerConnector:
 
         # Checking for lowercase exact match, in order to prevent any implicit usage of the environments.
         if aws_env not in AWSSecretsManagerConnector.DECI_ENVIRONMENTS:
-            logger.critical("[" + current_class_name + " ] -  wrong environment param... Exiting")
-            raise Exception("[" + current_class_name + "] - wrong environment param")
+            logger.critical(
+                f"[{current_class_name} ] -  wrong environment param... Exiting"
+            )
+            raise Exception(f"[{current_class_name}] - wrong environment param")
 
-        secrets_path = "/".join([aws_env, secret_name])
-        return secrets_path
+        return "/".join([aws_env, secret_name])

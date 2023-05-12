@@ -13,8 +13,7 @@ from super_gradients.training.utils.version_utils import torch_version_is_greate
 
 def bias_init_with_prob(prior_prob=0.01):
     """initialize conv/fc bias value according to a given probability value."""
-    bias_init = float(-np.log((1 - prior_prob) / prior_prob))
-    return bias_init
+    return float(-np.log((1 - prior_prob) / prior_prob))
 
 
 @torch.no_grad()
@@ -278,7 +277,4 @@ class PPYOLOEHead(nn.Module):
         return anchor_points, stride_tensor
 
     def forward(self, feats: Tuple[Tensor]):
-        if self.training:
-            return self.forward_train(feats)
-        else:
-            return self.forward_eval(feats)
+        return self.forward_train(feats) if self.training else self.forward_eval(feats)

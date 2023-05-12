@@ -132,10 +132,12 @@ class RecipeFactoryFormatTip(CrashTip):
         formatted_factory_name = fmt_txt(factory_name, bold=True, color="green")
 
         params_in_yaml = "\n".join(f"  {k}: {v}" for k, v in params_dict.items())
-        user_yaml = f"- {factory_name}:\n" + params_in_yaml
+        user_yaml = f"- {factory_name}:\n{params_in_yaml}"
         formatted_user_yaml = fmt_txt(user_yaml, indent=4, color="red")
 
-        correct_yaml = f"- {factory_name}:\n" + indent_string(params_in_yaml, indent_size=2)
+        correct_yaml = (
+            f"- {factory_name}:\n{indent_string(params_in_yaml, indent_size=2)}"
+        )
         formatted_correct_yaml = fmt_txt(correct_yaml, indent=4, color="green")
 
         tip = f"There is an indentation error in the recipe, while creating {formatted_factory_name}.\n"
@@ -143,8 +145,7 @@ class RecipeFactoryFormatTip(CrashTip):
         tip += f"{formatted_user_yaml}\n"
         tip += "Please change it to:\n"
         tip += f"{formatted_correct_yaml}"
-        tips = [tip]
-        return tips
+        return [tip]
 
     @staticmethod
     def _get_factory_with_params(exc_value: Exception) -> Tuple[str, dict]:
@@ -153,7 +154,7 @@ class RecipeFactoryFormatTip(CrashTip):
         :return: Parameters that are passed to that factory
         """
         description = str(exc_value)
-        params_dict = re.search(r"received: (.*?)$", description).group(1)
+        params_dict = re.search(r"received: (.*?)$", description)[1]
         params_dict = json_str_to_dict(params_dict)
         factory_name = next(iter(params_dict))
         params_dict.pop(factory_name)
@@ -207,7 +208,7 @@ class InterpolationKeyErrorTip(CrashTip):
 
     @classmethod
     def _get_tips(cls, exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> List[str]:
-        variable = re.search("'(.*?)'", str(exc_value)).group(1)
+        variable = re.search("'(.*?)'", str(exc_value))[1]
         tip = (
             f"It looks like you encountered an error related to interpolation of the variable '{variable}'.\n"
             "It's possible that this error is caused by not using the full path of the variable in your subfolder configuration.\n"
@@ -223,7 +224,11 @@ class InterpolationKeyErrorTip(CrashTip):
 
 def get_relevant_crash_tip_message(exc_type: type, exc_value: Exception, exc_traceback: TracebackType) -> Union[None, str]:
     """Get a CrashTip class if relevant for input exception"""
-    for crash_tip in CrashTip.get_sub_classes():
-        if crash_tip.is_relevant(exc_type, exc_value, exc_traceback):
-            return crash_tip.get_message(exc_type, exc_value, exc_traceback)
-    return None
+    return next(
+        (
+            crash_tip.get_message(exc_type, exc_value, exc_traceback)
+            for crash_tip in CrashTip.get_sub_classes()
+            if crash_tip.is_relevant(exc_type, exc_value, exc_traceback)
+        ),
+        None,
+    )

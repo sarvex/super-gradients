@@ -385,11 +385,18 @@ class SegFormer(SegmentationModule):
         """
         multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)
         multiply_lr_params, no_multiply_params = self._separate_lr_multiply_params()
-        param_groups = [
-            {"named_params": no_multiply_params, "lr": lr, "name": "no_multiply_params"},
-            {"named_params": multiply_lr_params, "lr": lr * multiply_head_lr, "name": "multiply_lr_params"},
+        return [
+            {
+                "named_params": no_multiply_params,
+                "lr": lr,
+                "name": "no_multiply_params",
+            },
+            {
+                "named_params": multiply_lr_params,
+                "lr": lr * multiply_head_lr,
+                "name": "multiply_lr_params",
+            },
         ]
-        return param_groups
 
     def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct, total_batch: int) -> list:
         multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)

@@ -13,11 +13,12 @@ class SegmentationTransformsTest(unittest.TestCase):
         self.default_mask_value = 0
 
     def create_sample(self, size):
-        sample = {
-            "image": Image.new(mode="RGB", size=size, color=self.default_image_value),
+        return {
+            "image": Image.new(
+                mode="RGB", size=size, color=self.default_image_value
+            ),
             "mask": Image.new(mode="L", size=size, color=self.default_mask_value),
         }
-        return sample
 
     def test_rescale_with_scale_factor(self):
         # test raise exception for negative and zero scale factor

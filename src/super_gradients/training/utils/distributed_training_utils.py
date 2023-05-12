@@ -166,9 +166,7 @@ def get_world_size() -> int:
     """
     if not dist.is_available():
         return 1
-    if not dist.is_initialized():
-        return 1
-    return dist.get_world_size()
+    return 1 if not dist.is_initialized() else dist.get_world_size()
 
 
 def get_device_ids() -> List[int]:
@@ -314,9 +312,8 @@ def _resolve_gpu_params(multi_gpu: MultiGPUMode, num_gpus: int) -> Tuple[MultiGP
     if multi_gpu in (MultiGPUMode.OFF, MultiGPUMode.DATA_PARALLEL):
         if num_gpus != 1:
             raise ValueError(f"You specified num_gpus={num_gpus} but it has not be 1 on when working with multi_gpu={multi_gpu}")
-    else:
-        if num_gpus > torch.cuda.device_count():
-            raise ValueError(f"You specified num_gpus={num_gpus} but only {torch.cuda.device_count()} GPU's are available")
+    elif num_gpus > torch.cuda.device_count():
+        raise ValueError(f"You specified num_gpus={num_gpus} but only {torch.cuda.device_count()} GPU's are available")
     return multi_gpu, num_gpus
 
 

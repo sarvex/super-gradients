@@ -146,10 +146,11 @@ class BaseSGLogger(AbstractSGLogger):
 
     @multi_process_safe
     def add_config(self, tag: str, config: dict):
-        log_lines = ["--------- config parameters ----------"]
-        log_lines.append(json.dumps(config, indent=4, default=str))
-        log_lines.append("------- config parameters end --------")
-
+        log_lines = [
+            "--------- config parameters ----------",
+            json.dumps(config, indent=4, default=str),
+            "------- config parameters end --------",
+        ]
         self.tensorboard_writer.add_text(tag, json.dumps(config, indent=4, default=str).replace(" ", "&nbsp;").replace("\n", "  \n  "))
         self._write_to_log_file(log_lines)
 
@@ -281,7 +282,9 @@ class BaseSGLogger(AbstractSGLogger):
                 process.send_signal(signal.SIGTERM)
                 logger.info("[CLEANUP] - Successfully stopped tensorboard process")
             except Exception as ex:
-                logger.info("[CLEANUP] - Could not stop tensorboard process properly: " + str(ex))
+                logger.info(
+                    f"[CLEANUP] - Could not stop tensorboard process properly: {str(ex)}"
+                )
 
     @multi_process_safe
     def add_checkpoint(self, tag: str, state_dict: dict, global_step: int = None) -> None:
@@ -309,7 +312,7 @@ class BaseSGLogger(AbstractSGLogger):
         name = os.path.basename(path)
         torch.save(state_dict, path)
         if "best" in name:
-            logger.info("Checkpoint saved in " + path)
+            logger.info(f"Checkpoint saved in {path}")
         if self.save_checkpoints_remote:
             self.model_checkpoints_data_interface.save_remote_checkpoints_file(self.experiment_name, self._local_dir, name)
 
@@ -323,7 +326,7 @@ class BaseSGLogger(AbstractSGLogger):
     def _save_code(self):
         for name, code in saved_codes.items():
             if not name.endswith("py"):
-                name = name + ".py"
+                name = f"{name}.py"
 
             path = os.path.join(self._local_dir, name)
             with open(path, "w") as f:

@@ -5,7 +5,7 @@ from super_gradients.common.factories.base_factory import AbstractFactory
 
 
 def _assign_tuple(t: tuple, index: int, value):
-    return tuple([x if i != index else value for i, x in enumerate(t)])
+    return tuple(x if i != index else value for i, x in enumerate(t))
 
 
 def resolve_param(param_name: str, factory: AbstractFactory):

@@ -108,7 +108,7 @@ class DatasetIntegrationTest(unittest.TestCase):
         with initialize_config_dir(config_dir=normalize_path(sg_recipes_dir), version_base="1.2"):
             # config is relative to a module
             cfg = compose(config_name=normalize_path(dataset_config))
-            dataset_params = _process_dataset_params(cfg, dict(), True)
+            dataset_params = _process_dataset_params(cfg, {}, True)
 
         coco_base_recipe_transforms = dataset_params["transforms"]
         dataset_config = deepcopy(self.dataset_coco_base_config)

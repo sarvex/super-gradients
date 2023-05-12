@@ -6,7 +6,7 @@ try:
     from super_gradients.training.utils.quantization.selective_quantization_utils import register_quantized_module
 
     _imported_pytorch_quantization_failure = None
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
+except (ImportError, NameError) as import_err:
     _imported_pytorch_quantization_failure = import_err
 
 

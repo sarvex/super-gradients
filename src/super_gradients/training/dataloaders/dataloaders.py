@@ -60,9 +60,9 @@ def get_data_loader(config_name: str, dataset_cls: object, train: bool, dataset_
     :return: DataLoader
     """
     if dataloader_params is None:
-        dataloader_params = dict()
+        dataloader_params = {}
     if dataset_params is None:
-        dataset_params = dict()
+        dataset_params = {}
 
     cfg = load_dataset_params(config_name=config_name)
 
@@ -821,13 +821,10 @@ def get(name: str = None, dataset_params: Dict = None, dataloader_params: Dict =
     :param dataset: torch.utils.data.Dataset to be used instead of passing "name" (i.e for external dataset objects).
     :return: initialized DataLoader.
     """
-    if dataset is not None:
-        if name or dataset_params:
-            raise ValueError("'name' and 'dataset_params' cannot be passed with initialized dataset.")
+    if dataset is not None and (name or dataset_params):
+        raise ValueError("'name' and 'dataset_params' cannot be passed with initialized dataset.")
 
-    dataset_str = get_param(dataloader_params, "dataset")
-
-    if dataset_str:
+    if dataset_str := get_param(dataloader_params, "dataset"):
         if name or dataset:
             raise ValueError("'name' and 'datasets' cannot be passed when 'dataset' arg dataloader_params is used as well.")
         if dataset_params is not None:
@@ -840,7 +837,7 @@ def get(name: str = None, dataset_params: Dict = None, dataloader_params: Dict =
         dataloader_params = _process_sampler_params(dataloader_params, dataset, {})
         dataloader = DataLoader(dataset=dataset, **dataloader_params)
     elif name not in ALL_DATALOADERS.keys():
-        raise ValueError("Unsupported dataloader: " + str(name))
+        raise ValueError(f"Unsupported dataloader: {name}")
     else:
         dataloader_cls = ALL_DATALOADERS[name]
         dataloader = dataloader_cls(dataset_params=dataset_params, dataloader_params=dataloader_params)

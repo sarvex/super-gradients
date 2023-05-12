@@ -48,8 +48,7 @@ class HardMiningCrossEntropyLoss(_Loss):
         # for each image into neg mask we'll take (3 * positive pairs) background objects with the highest CE
         neg_mask = con_rank < neg_num
 
-        closs = (con * (mask.float() + neg_mask.float())).sum(dim=1)
-        return closs
+        return (con * (mask.float() + neg_mask.float())).sum(dim=1)
 
 
 @register_loss(Losses.SSD_LOSS)

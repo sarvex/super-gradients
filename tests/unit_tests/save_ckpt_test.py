@@ -38,7 +38,10 @@ class SaveCkptListUnitTest(unittest.TestCase):
         trainer.train(model=model, training_params=train_params, train_loader=classification_test_dataloader(), valid_loader=classification_test_dataloader())
 
         dir_path = trainer.checkpoints_dir_path
-        self.file_names_list = [dir_path + f"/ckpt_epoch_{epoch}.pth" for epoch in train_params["save_ckpt_epoch_list"]]
+        self.file_names_list = [
+            f"{dir_path}/ckpt_epoch_{epoch}.pth"
+            for epoch in train_params["save_ckpt_epoch_list"]
+        ]
 
     def test_save_ckpt_epoch_list(self):
         self.assertTrue(os.path.exists(self.file_names_list[0]))

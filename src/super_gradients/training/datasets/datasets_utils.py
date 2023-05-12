@@ -498,10 +498,7 @@ class DatasetStatisticsTensorboardLogger:
         plt.title(f"{title} class distribution", fontsize=STAT_LOGGER_FONT_SIZE)
 
         self.sg_logger.add_figure(f"{title} class distribution", figure=f)
-        text_dist = ""
-        for i, val in enumerate(hist):
-            text_dist += f"[{i}]: {val}, "
-
+        text_dist = "".join(f"[{i}]: {val}, " for i, val in enumerate(hist))
         self.sg_logger.add_text(tag=f"{title} class distribution", text_string=text_dist)
 
     def _analyze_object_size_distribution(self, labels: list, title: str):
@@ -646,12 +643,11 @@ def get_color_augmentation(rand_augment_config_string: str, color_jitter: tuple,
     :param img_mean: relevant only for auto augment
     :return: RandAugment transform or ColorJitter
     """
-    if rand_augment_config_string:
-        color_augmentation = rand_augment_transform(rand_augment_config_string, crop_size, img_mean)
-
-    else:  # RandAugment includes colorjitter like augmentations, both cannot be applied together.
-        color_augmentation = transforms.ColorJitter(*color_jitter)
-    return color_augmentation
+    return (
+        rand_augment_transform(rand_augment_config_string, crop_size, img_mean)
+        if rand_augment_config_string
+        else transforms.ColorJitter(*color_jitter)
+    )
 
 
 def worker_init_reset_seed(worker_id):

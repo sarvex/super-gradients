@@ -218,10 +218,14 @@ class VideoDetectionPrediction(VideoPredictions):
                                 Default is None, which generates a default color mapping based on the number of class names.
         :return:                List of images with predicted bboxes. Note that this does not modify the original image.
         """
-        frames_with_bbox = [
-            result.draw(box_thickness=box_thickness, show_confidence=show_confidence, color_mapping=color_mapping) for result in self._images_prediction_lst
+        return [
+            result.draw(
+                box_thickness=box_thickness,
+                show_confidence=show_confidence,
+                color_mapping=color_mapping,
+            )
+            for result in self._images_prediction_lst
         ]
-        return frames_with_bbox
 
     def show(self, box_thickness: int = 2, show_confidence: bool = True, color_mapping: Optional[List[Tuple[int, int, int]]] = None) -> None:
         """Display the predicted bboxes on the images.

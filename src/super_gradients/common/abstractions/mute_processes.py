@@ -75,8 +75,9 @@ def is_non_linux_dataloader_worker_process() -> bool:
             # DDP launched using torch.distributed.launch or torchrun
             main_process = psutil.Process().parent()
 
-        is_worker_process = main_process and "python" in main_process.name()
-
-        if is_worker_process:
+        if (
+            is_worker_process := main_process
+            and "python" in main_process.name()
+        ):
             return True
     return False

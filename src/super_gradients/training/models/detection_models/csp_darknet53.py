@@ -18,14 +18,13 @@ from super_gradients.training.utils.utils import get_param, HpmStruct
 
 
 def get_yolo_type_params(yolo_type: str, width_mult_factor: float, depth_mult_factor: float):
-    if yolo_type == "yoloX":
-        struct = (3, 9, 9, 3)
-        block = CSPLayer
-        activation_type = nn.SiLU
-        width_mult = lambda channels: width_multiplier(channels, width_mult_factor)
-    else:
+    if yolo_type != "yoloX":
         raise NotImplementedError(f"Yolo yolo_type {yolo_type} is not supported")
 
+    struct = (3, 9, 9, 3)
+    block = CSPLayer
+    activation_type = nn.SiLU
+    width_mult = lambda channels: width_multiplier(channels, width_mult_factor)
     depth_mult = lambda blocks: max(round(blocks * depth_mult_factor), 1) if blocks > 1 else blocks
     return struct, block, activation_type, width_mult, depth_mult
 

@@ -91,7 +91,7 @@ try:
         "QuantContextPath",
     ]
 
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
+except (ImportError, NameError) as import_err:
     logger.debug(f"Failed to import pytorch_quantization: {import_err}")
     quant_extensions = None
 

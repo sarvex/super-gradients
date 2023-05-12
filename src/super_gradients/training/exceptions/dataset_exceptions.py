@@ -14,7 +14,7 @@ class IllegalDatasetParameterException(DatasetValidationException):
     """
 
     def __init__(self, desc: str):
-        self.message = "Unsupported dataset parameter format: " + desc
+        self.message = f"Unsupported dataset parameter format: {desc}"
         super().__init__(self.message)
 
 
@@ -26,7 +26,7 @@ class EmptyDatasetException(DatasetValidationException):
     """
 
     def __init__(self, desc: str):
-        self.message = "Empty Dataset: " + desc
+        self.message = f"Empty Dataset: {desc}"
         super().__init__(self.message)
 
 

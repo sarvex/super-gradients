@@ -25,15 +25,13 @@ class RearrangeOutput(nn.Module):
         :param x: Input tensor of  [..., N] shape
         :return: Output tensor of [..., N[index]] shape
         """
-        if torch.jit.is_scripting():
-            # Workaround "Ellipses followed by tensor indexing is currently not supported"
-            # https://github.com/pytorch/pytorch/issues/34837
-            x = torch.moveaxis(x, -1, 0)
-            x = x[self.indexes]
-            x = torch.moveaxis(x, 0, -1)
-            return x
-        else:
+        if not torch.jit.is_scripting():
             return x[..., self.indexes]
+        # Workaround "Ellipses followed by tensor indexing is currently not supported"
+        # https://github.com/pytorch/pytorch/issues/34837
+        x = torch.moveaxis(x, -1, 0)
+        x = x[self.indexes]
+        return torch.moveaxis(x, 0, -1)
 
 
 class ConvertBoundingBoxes(nn.Module):

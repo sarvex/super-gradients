@@ -45,13 +45,7 @@ class NormalizedXYWHCoordinateFormat(BoundingBoxFormat):
         self.normalized = True
 
     def get_to_xyxy(self, inplace: bool):
-        if inplace:
-            return normalized_xywh_to_xyxy_inplace
-        else:
-            return normalized_xywh_to_xyxy
+        return normalized_xywh_to_xyxy_inplace if inplace else normalized_xywh_to_xyxy
 
     def get_from_xyxy(self, inplace: bool):
-        if inplace:
-            return xyxy_to_normalized_xywh_inplace
-        else:
-            return xyxy_to_normalized_xywh
+        return xyxy_to_normalized_xywh_inplace if inplace else xyxy_to_normalized_xywh

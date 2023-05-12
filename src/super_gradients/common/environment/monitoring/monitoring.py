@@ -45,8 +45,7 @@ class SystemMonitor:
             StatAggregator(name="System/cpu.usage_percent", sampling_fn=cpu.get_cpu_percent, aggregate_fn=average),
         ]
 
-        is_nvidia_lib_available = gpu.safe_init_nvidia_management_lib()
-        if is_nvidia_lib_available:
+        if is_nvidia_lib_available := gpu.safe_init_nvidia_management_lib():
             self.stat_aggregators += [
                 *GPUStatAggregatorIterator(
                     name="System/gpu.memory_usage_percent", device_sampling_fn=gpu.get_device_memory_usage_percent, device_aggregate_fn=average

@@ -103,8 +103,7 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
             :param sample_path: The path to the sample image
             :return:            The loaded Image
         """
-        image = Image.open(sample_path).convert("RGB")
-        return image
+        return Image.open(sample_path).convert("RGB")
 
     @staticmethod
     def sample_transform(image):
@@ -125,8 +124,7 @@ class SegmentationDataSet(DirectoryDataSet, ListDataset):
             :param target_path: The path to the sample image
             :return:            The loaded Image
         """
-        target = Image.open(target_path)
-        return target
+        return Image.open(target_path)
 
     @staticmethod
     def target_transform(target):

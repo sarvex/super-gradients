@@ -75,7 +75,7 @@ def bbox_overlaps(bboxes1: torch.Tensor, bboxes2: torch.Tensor, mode: str = "iou
     :param eps:         A value added to the denominator for numerical stability. Default 1e-6.
     :return:            Tensor of shape (m, n) if ``is_aligned `` is False else shape (m,)
     """
-    assert mode in ["iou", "iof", "giou"], "Unsupported mode {}".format(mode)
+    assert mode in {"iou", "iof", "giou"}, f"Unsupported mode {mode}"
     # Either the boxes are empty or the length of boxes's last dimenstion is 4
     assert bboxes1.shape[-1] == 4 or bboxes1.shape[0] == 0
     assert bboxes2.shape[-1] == 4 or bboxes2.shape[0] == 0
@@ -83,14 +83,14 @@ def bbox_overlaps(bboxes1: torch.Tensor, bboxes2: torch.Tensor, mode: str = "iou
     # Batch dim must be the same
     # Batch dim: (B1, B2, ... Bn)
     assert bboxes1.shape[:-2] == bboxes2.shape[:-2]
-    batch_shape = bboxes1.shape[:-2]
-
     rows = bboxes1.shape[-2] if bboxes1.shape[0] > 0 else 0
     cols = bboxes2.shape[-2] if bboxes2.shape[0] > 0 else 0
     if is_aligned:
         assert rows == cols
 
     if rows * cols == 0:
+        batch_shape = bboxes1.shape[:-2]
+
         if is_aligned:
             return np.random.random(batch_shape + (rows,))
         else:
@@ -106,10 +106,7 @@ def bbox_overlaps(bboxes1: torch.Tensor, bboxes2: torch.Tensor, mode: str = "iou
         wh = (rb - lt).clip(min=0)  # [B, rows, 2]
         overlap = wh[..., 0] * wh[..., 1]
 
-        if mode in ["iou", "giou"]:
-            union = area1 + area2 - overlap
-        else:
-            union = area1
+        union = area1 + area2 - overlap if mode in {"iou", "giou"} else area1
         if mode == "giou":
             enclosed_lt = np.minimum(bboxes1[..., :2], bboxes2[..., :2])
             enclosed_rb = np.maximum(bboxes1[..., 2:], bboxes2[..., 2:])
@@ -120,7 +117,7 @@ def bbox_overlaps(bboxes1: torch.Tensor, bboxes2: torch.Tensor, mode: str = "iou
         wh = (rb - lt).clip(min=0)  # [B, rows, cols, 2]
         overlap = wh[..., 0] * wh[..., 1]
 
-        if mode in ["iou", "giou"]:
+        if mode in {"iou", "giou"}:
             union = area1[..., None] + area2[..., None, :] - overlap
         else:
             union = area1[..., None]
@@ -131,14 +128,13 @@ def bbox_overlaps(bboxes1: torch.Tensor, bboxes2: torch.Tensor, mode: str = "iou
     eps = np.array([eps])
     union = np.maximum(union, eps)
     ious = overlap / union
-    if mode in ["iou", "iof"]:
+    if mode in {"iou", "iof"}:
         return ious
     # calculate gious
     enclose_wh = (enclosed_rb - enclosed_lt).clip(min=0)
     enclose_area = enclose_wh[..., 0] * enclose_wh[..., 1]
     enclose_area = np.maximum(enclose_area, eps)
-    gious = ious - (enclose_area - union) / enclose_area
-    return gious
+    return ious - (enclose_area - union) / enclose_area
 
 
 def topk_(input, k, axis=1, largest=True):
@@ -339,7 +335,7 @@ class ATSSAssigner(nn.Module):
             - assigned_bboxes: Tensor of shape (B, L, 4)
             - assigned_scores: Tensor of shape (B, L, C), if pred_bboxes is not None, then output ious
         """
-        assert gt_labels.ndim == gt_bboxes.ndim and gt_bboxes.ndim == 3
+        assert gt_labels.ndim == gt_bboxes.ndim == 3
 
         num_anchors, _ = anchor_bboxes.shape
         batch_size, num_max_boxes, _ = gt_bboxes.shape
@@ -485,7 +481,7 @@ class TaskAlignedAssigner(nn.Module):
             - assigned_scores, Tensor of shape (B, L, C)
         """
         assert pred_scores.ndim == pred_bboxes.ndim
-        assert gt_labels.ndim == gt_bboxes.ndim and gt_bboxes.ndim == 3
+        assert gt_labels.ndim == gt_bboxes.ndim == 3
 
         batch_size, num_anchors, num_classes = pred_scores.shape
         _, num_max_boxes, _ = gt_bboxes.shape
@@ -565,7 +561,7 @@ class GIoULoss(object):
     def __init__(self, loss_weight: float = 1.0, eps: float = 1e-10, reduction: str = "none"):
         self.loss_weight = loss_weight
         self.eps = eps
-        assert reduction in ("none", "mean", "sum")
+        assert reduction in {"none", "mean", "sum"}
         self.reduction = reduction
 
     def bbox_overlap(self, box1: Tensor, box2: Tensor, eps: float = 1e-10) -> Tuple[Tensor, Tensor, Tensor]:

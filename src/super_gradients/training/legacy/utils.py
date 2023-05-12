@@ -10,7 +10,7 @@ def prefetch_dataset(dataset, num_workers=4, batch_size=32, device=None, half=Fa
         tensors = dataset
     else:
         dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False, drop_last=False, num_workers=num_workers, pin_memory=False)
-        tensors = [t for t in dataloader]
+        tensors = list(dataloader)
         tensors = [torch.cat(t, dim=0) for t in zip(*tensors)]
 
     if device is not None:
@@ -89,21 +89,21 @@ def format_time(seconds):
     f = ""
     i = 1
     if days > 0:
-        f += str(days) + "D"
+        f += f"{days}D"
         i += 1
     if hours > 0 and i <= 2:
-        f += str(hours) + "h"
+        f += f"{hours}h"
         i += 1
     if minutes > 0 and i <= 2:
-        f += str(minutes) + "m"
+        f += f"{minutes}m"
         i += 1
     if secondsf > 0 and i <= 2:
-        f += str(secondsf) + "s"
+        f += f"{secondsf}s"
         i += 1
     if millis > 0 and i <= 2:
-        f += str(millis) + "ms"
+        f += f"{millis}ms"
         i += 1
-    if f == "":
+    if not f:
         f = "0ms"
     return f
 

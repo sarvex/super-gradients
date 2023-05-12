@@ -77,7 +77,9 @@ class ResNeXt(SgModule):
             # the 2x2 stride with a dilated convolution instead
             replace_stride_with_dilation = [False, False, False]
         if len(replace_stride_with_dilation) != 3:
-            raise ValueError("replace_stride_with_dilation should be None " "or a 3-element tuple, got {}".format(replace_stride_with_dilation))
+            raise ValueError(
+                f"replace_stride_with_dilation should be None or a 3-element tuple, got {replace_stride_with_dilation}"
+            )
 
         self.cardinality = cardinality
         self.dilation = 1
@@ -113,9 +115,17 @@ class ResNeXt(SgModule):
 
         layers = [block(self.inplanes, planes, stride, downsample, self.cardinality, self.base_width, previous_dilation, norm_layer)]
         self.inplanes = planes * block.expansion
-        for _ in range(1, blocks):
-            layers.append(block(self.inplanes, planes, groups=self.cardinality, base_width=self.base_width, dilation=self.dilation, norm_layer=norm_layer))
-
+        layers.extend(
+            block(
+                self.inplanes,
+                planes,
+                groups=self.cardinality,
+                base_width=self.base_width,
+                dilation=self.dilation,
+                norm_layer=norm_layer,
+            )
+            for _ in range(1, blocks)
+        )
         return nn.Sequential(*layers)
 
     def forward(self, x):

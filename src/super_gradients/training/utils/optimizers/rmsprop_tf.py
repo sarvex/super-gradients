@@ -57,16 +57,16 @@ class RMSpropTF(Optimizer):
         :param lr_in_momentum (bool, optional): learning rate scaling is included in the momentum buffer update as per
          defaults in Tensorflow
         """
-        if not 0.0 <= lr:
-            raise ValueError("Invalid learning rate: {}".format(lr))
-        if not 0.0 <= eps:
-            raise ValueError("Invalid epsilon value: {}".format(eps))
-        if not 0.0 <= momentum:
-            raise ValueError("Invalid momentum value: {}".format(momentum))
-        if not 0.0 <= weight_decay:
-            raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
-        if not 0.0 <= alpha:
-            raise ValueError("Invalid alpha value: {}".format(alpha))
+        if lr < 0.0:
+            raise ValueError(f"Invalid learning rate: {lr}")
+        if eps < 0.0:
+            raise ValueError(f"Invalid epsilon value: {eps}")
+        if momentum < 0.0:
+            raise ValueError(f"Invalid momentum value: {momentum}")
+        if weight_decay < 0.0:
+            raise ValueError(f"Invalid weight_decay value: {weight_decay}")
+        if alpha < 0.0:
+            raise ValueError(f"Invalid alpha value: {alpha}")
 
         defaults = dict(
             lr=lr,
@@ -86,16 +86,13 @@ class RMSpropTF(Optimizer):
             group.setdefault("momentum", 0)
             group.setdefault("centered", False)
 
-    def step(self, closure: Optional[callable] = None) -> torch.Tensor:  # noqa: C901
+    def step(self, closure: Optional[callable] = None) -> torch.Tensor:    # noqa: C901
         """Performs a single optimization step.
         Arguments:
             closure (callable, optional): A closure that reevaluates the model
                 and returns the loss.
         """
-        loss = None
-        if closure is not None:
-            loss = closure()
-
+        loss = closure() if closure is not None else None
         for group in self.param_groups:
             for p in group["params"]:
                 if p.grad is None:

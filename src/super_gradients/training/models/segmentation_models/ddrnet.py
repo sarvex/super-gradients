@@ -24,8 +24,15 @@ def ConvBN(in_channels: int, out_channels: int, kernel_size: int, bias=True, str
 
 
 def _make_layer(block, in_planes, planes, num_blocks, stride=1, expansion=1):
-    layers = []
-    layers.append(block(in_planes, planes, stride, final_relu=num_blocks > 1, expansion=expansion))
+    layers = [
+        block(
+            in_planes,
+            planes,
+            stride,
+            final_relu=num_blocks > 1,
+            expansion=expansion,
+        )
+    ]
     in_planes = planes * expansion
     if num_blocks > 1:
         for i in range(1, num_blocks):
@@ -57,16 +64,16 @@ class DAPPMBranch(nn.Module):
         if stride == 0:
             # when stride is 0 average pool all the input to 1x1
             down_list.append(nn.AdaptiveAvgPool2d((1, 1)))
-        elif stride == 1:
-            # when stride id 1 no average pooling is used
-            pass
-        else:
+        elif stride != 1:
             down_list.append(nn.AvgPool2d(kernel_size=kernel_size, stride=stride, padding=stride))
 
-        down_list.append(nn.BatchNorm2d(in_planes))
-        down_list.append(nn.ReLU(inplace=True))
-        down_list.append(nn.Conv2d(in_planes, branch_planes, kernel_size=1, bias=False))
-
+        down_list.extend(
+            (
+                nn.BatchNorm2d(in_planes),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(in_planes, branch_planes, kernel_size=1, bias=False),
+            )
+        )
         self.down_scale = nn.Sequential(*down_list)
         self.up_scale = UpscaleOnline(inter_mode)
 
@@ -129,8 +136,7 @@ class DAPPM(nn.Module):
             else:
                 x_list.append(branch([x, x_list[i - 1]]))
 
-        out = self.compression(torch.cat(x_list, 1)) + self.shortcut(x)
-        return out
+        return self.compression(torch.cat(x_list, 1)) + self.shortcut(x)
 
 
 class SegmentHead(nn.Module):
@@ -197,12 +203,11 @@ class DDRBackBoneBase(nn.Module):
     def get_backbone_output_number_of_channels(self):
         """Return a dictionary of the shapes of each output of the backbone to determine the in_channels of the
         skip and compress layers"""
-        output_shapes = {}
         x = torch.randn(1, self.input_channels, 320, 320)
         x = self.stem(x)
         x = self.layer1(x)
         x = self.layer2(x)
-        output_shapes["layer2"] = x.shape[1]
+        output_shapes = {"layer2": x.shape[1]}
         for layer in self.layer3:
             x = layer(x)
         output_shapes["layer3"] = x.shape[1]
@@ -475,11 +480,18 @@ class DDRNet(SegmentationModule):
         """
         multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)
         multiply_lr_params, no_multiply_params = self._separate_lr_multiply_params()
-        param_groups = [
-            {"named_params": no_multiply_params, "lr": lr, "name": "no_multiply_params"},
-            {"named_params": multiply_lr_params, "lr": lr * multiply_head_lr, "name": "multiply_lr_params"},
+        return [
+            {
+                "named_params": no_multiply_params,
+                "lr": lr,
+                "name": "no_multiply_params",
+            },
+            {
+                "named_params": multiply_lr_params,
+                "lr": lr * multiply_head_lr,
+                "name": "multiply_lr_params",
+            },
         ]
-        return param_groups
 
     def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct, total_batch: int) -> list:
         multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)
@@ -615,7 +627,10 @@ class AnyBackBoneDDRNet23(DDRNetCustom):
     def __init__(self, arch_params: HpmStruct):
         _arch_params = HpmStruct(**DEFAULT_DDRNET_23_PARAMS)
         _arch_params.override(**arch_params.to_dict())
-        assert len(_arch_params.layers) == 4 or len(_arch_params.layers) == 8, "The length of 'arch_params.layers' must be 4 or 8"
+        assert len(_arch_params.layers) in {
+            4,
+            8,
+        }, "The length of 'arch_params.layers' must be 4 or 8"
         # TAKE THE LAST 4 NUMBERS AS THE ADDITIONAL LAYERS SPECIFICATION
         _arch_params.additional_layers = _arch_params.layers[-4:]
         assert hasattr(_arch_params, "backbone"), "AnyBackBoneDDRNet_23 requires having a backbone in arch_params"

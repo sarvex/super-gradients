@@ -44,14 +44,8 @@ class YXYXCoordinateFormat(BoundingBoxFormat):
         self.normalized = False
 
     def get_to_xyxy(self, inplace: bool):
-        if inplace:
-            return xyxy_to_yxyx_inplace
-        else:
-            return xyxy_to_yxyx
+        return xyxy_to_yxyx_inplace if inplace else xyxy_to_yxyx
 
     def get_from_xyxy(self, inplace: bool):
         # XYXY <-> YXYX is interchangable operation, so we may reuse same routine here
-        if inplace:
-            return xyxy_to_yxyx_inplace
-        else:
-            return xyxy_to_yxyx
+        return xyxy_to_yxyx_inplace if inplace else xyxy_to_yxyx

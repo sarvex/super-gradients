@@ -24,7 +24,9 @@ def get_builtin_activation_type(activation: Union[str, None], **kwargs) -> Type[
     if activation is None:
         activation_cls = nn.Identity
     else:
-        lowercase_aliases: Dict[str, str] = dict((k.lower(), k) for k in torch.nn.__dict__.keys())
+        lowercase_aliases: Dict[str, str] = {
+            k.lower(): k for k in torch.nn.__dict__.keys()
+        }
 
         # Register additional aliases
         lowercase_aliases["leaky_relu"] = "LeakyReLU"  # LeakyRelu in snake_case

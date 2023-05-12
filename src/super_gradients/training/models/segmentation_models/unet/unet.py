@@ -125,17 +125,26 @@ class UNetBase(SegmentationModule):
         :param upsample_mode: see UpsampleMode for supported options.
         :return: nn.ModuleList
         """
-        heads = nn.ModuleList(
+        return nn.ModuleList(
             [
                 nn.Sequential(
                     SegmentationHead(ch, hid_ch, out_ch, dropout=dropout),
-                    make_upsample_module(scale_factor=scale, upsample_mode=upsample_mode, align_corners=align_corners),
+                    make_upsample_module(
+                        scale_factor=scale,
+                        upsample_mode=upsample_mode,
+                        align_corners=align_corners,
+                    ),
                 )
-                for ch, scale, hid_ch, out_ch, use_aux in zip(in_channels_list, aux_heads_factor, aux_hidden_channels, aux_out_channels, use_aux_list)
+                for ch, scale, hid_ch, out_ch, use_aux in zip(
+                    in_channels_list,
+                    aux_heads_factor,
+                    aux_hidden_channels,
+                    aux_out_channels,
+                    use_aux_list,
+                )
                 if use_aux
             ]
         )
-        return heads
 
     def forward(self, x):
         encoder_feats = self.encoder(x)
@@ -164,12 +173,18 @@ class UNetBase(SegmentationModule):
         multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)
 
         multiply_lr_params, no_multiply_params = self._separate_lr_multiply_params()
-        param_groups = [
-            {"named_params": no_multiply_params, "lr": lr, "name": "no_multiply_params"},
-            {"named_params": multiply_lr_params, "lr": lr * multiply_head_lr, "name": "multiply_lr_params"},
+        return [
+            {
+                "named_params": no_multiply_params,
+                "lr": lr,
+                "name": "no_multiply_params",
+            },
+            {
+                "named_params": multiply_lr_params,
+                "lr": lr * multiply_head_lr,
+                "name": "multiply_lr_params",
+            },
         ]
-
-        return param_groups
 
     def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct, total_batch: int) -> list:
         multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)

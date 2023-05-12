@@ -63,10 +63,7 @@ class NStageBackbone(BaseDetectionModule):
         self._out_channels = self._define_out_channels()
 
     def _define_out_channels(self):
-        out_channels = []
-        for layer in self.out_layers:
-            out_channels.append(getattr(self, layer).out_channels)
-        return out_channels
+        return [getattr(self, layer).out_channels for layer in self.out_layers]
 
     @property
     def out_channels(self):
@@ -160,10 +157,9 @@ class NHeads(BaseDetectionModule):
         return None
 
     def forward(self, inputs):
-        outputs = []
-        for i in range(self.num_heads):
-            outputs.append(getattr(self, f"head{i + 1}")(inputs[i]))
-
+        outputs = [
+            getattr(self, f"head{i + 1}")(inputs[i]) for i in range(self.num_heads)
+        ]
         return self.combine_preds(outputs)
 
     def combine_preds(self, preds):
@@ -367,20 +363,19 @@ class SSDHead(BaseDetectionModule):
         if self.training:
             # FOR 300X300 INPUT - RETURN N_BATCH X 8732 X {N_LABELS, N_LOCS} RESULTS
             return locs, confs
-        else:
-            bboxes_in = locs.permute(0, 2, 1)
-            scores_in = confs.permute(0, 2, 1)
+        bboxes_in = locs.permute(0, 2, 1)
+        scores_in = confs.permute(0, 2, 1)
 
-            bboxes_in *= self.scales
+        bboxes_in *= self.scales
 
-            # CONVERT RELATIVE LOCATIONS INTO ABSOLUTE LOCATION (OUTPUT LOCATIONS ARE RELATIVE TO THE DBOXES)
-            xy = (bboxes_in[:, :, :2] * self.dboxes_wh + self.dboxes_xy) * self.img_size
-            wh = (bboxes_in[:, :, 2:].exp() * self.dboxes_wh) * self.img_size
+        # CONVERT RELATIVE LOCATIONS INTO ABSOLUTE LOCATION (OUTPUT LOCATIONS ARE RELATIVE TO THE DBOXES)
+        xy = (bboxes_in[:, :, :2] * self.dboxes_wh + self.dboxes_xy) * self.img_size
+        wh = (bboxes_in[:, :, 2:].exp() * self.dboxes_wh) * self.img_size
 
-            # REPLACE THE CONFIDENCE OF CLASS NONE WITH OBJECT CONFIDENCE
-            # SSD DOES NOT OUTPUT OBJECT CONFIDENCE, REQUIRED FOR THE NMS
-            scores_in = torch.softmax(scores_in, dim=-1)
-            classes_conf = scores_in[:, :, 1:]
-            obj_conf = torch.max(classes_conf, dim=2)[0].unsqueeze(dim=-1)
+        # REPLACE THE CONFIDENCE OF CLASS NONE WITH OBJECT CONFIDENCE
+        # SSD DOES NOT OUTPUT OBJECT CONFIDENCE, REQUIRED FOR THE NMS
+        scores_in = torch.softmax(scores_in, dim=-1)
+        classes_conf = scores_in[:, :, 1:]
+        obj_conf = torch.max(classes_conf, dim=2)[0].unsqueeze(dim=-1)
 
-            return torch.cat((xy, wh, obj_conf, classes_conf), dim=2), (locs, confs)
+        return torch.cat((xy, wh, obj_conf, classes_conf), dim=2), (locs, confs)

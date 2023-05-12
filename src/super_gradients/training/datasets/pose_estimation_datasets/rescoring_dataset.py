@@ -17,7 +17,7 @@ class RescoringDataset(Dataset):
         raise NotImplementedError()
 
     @classmethod
-    def parse_pkl_file(self, pkl_file_path: str):
+    def parse_pkl_file(cls, pkl_file_path: str):
         with open(pkl_file_path, "rb") as f:
             data = pickle.load(f)
         return data

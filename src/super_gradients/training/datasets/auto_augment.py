@@ -97,18 +97,15 @@ def solarize_add(img, add, thresh=128, **__):
             lut.append(min(255, i + add))
         else:
             lut.append(i)
-    if img.mode in ("L", "RGB"):
-        if img.mode == "RGB" and len(lut) == 256:
-            lut = lut + lut + lut
-        return img.point(lut)
-    else:
+    if img.mode not in ("L", "RGB"):
         return img
+    if img.mode == "RGB" and len(lut) == 256:
+        lut = lut + lut + lut
+    return img.point(lut)
 
 
 def posterize(img, bits_to_keep, **__):
-    if bits_to_keep >= 8:
-        return img
-    return ImageOps.posterize(img, bits_to_keep)
+    return img if bits_to_keep >= 8 else ImageOps.posterize(img, bits_to_keep)
 
 
 def contrast(img, factor, **__):
@@ -416,7 +413,12 @@ def rand_augment_transform(config_str, crop_size: int, img_mean: List[float]):
 
     :return: A PyTorch compatible Transform
     """
-    hparams = dict(translate_const=int(crop_size * 0.45), img_mean=tuple([min(255, round(255 * channel_mean)) for channel_mean in img_mean]))
+    hparams = dict(
+        translate_const=int(crop_size * 0.45),
+        img_mean=tuple(
+            min(255, round(255 * channel_mean)) for channel_mean in img_mean
+        ),
+    )
 
     magnitude = _MAX_MAGNITUDE  # default to _MAX_MAGNITUDE for magnitude (currently 10)
     num_layers = 2  # default to 2 ops per image
@@ -428,14 +430,14 @@ def rand_augment_transform(config_str, crop_size: int, img_mean: List[float]):
         if len(cs) < 2:
             continue
         key, val = cs[:2]
-        if key == "mstd":
-            # noise param injected via hparams for now
-            hparams.setdefault("magnitude_std", float(val))
-        elif key == "inc":
+        if key == "inc":
             if bool(val):
                 transforms = _RAND_INCREASING_TRANSFORMS
         elif key == "m":
             magnitude = int(val)
+        elif key == "mstd":
+            # noise param injected via hparams for now
+            hparams.setdefault("magnitude_std", float(val))
         elif key == "n":
             num_layers = int(val)
         elif key == "w":

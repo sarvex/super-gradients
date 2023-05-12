@@ -47,7 +47,7 @@ def check_for_duplicate_annotations(coco: COCO, max_distance_threshold=2) -> Non
             keypoints = np.array(ann["keypoints"]).reshape(-1, 3)
             joints.append(keypoints[:, :2])
 
-        if len(joints) == 0:
+        if not joints:
             continue
 
         gt_joints1 = np.expand_dims(joints, axis=0)  # [1, Num_people, Num_joints, 2]
@@ -96,7 +96,7 @@ def remove_duplicate_annotations(coco: COCO) -> COCO:
             keypoints = np.array(ann["keypoints"]).reshape(-1, 3)
             joints.append(keypoints[:, :2])
 
-        if len(joints) == 0:
+        if not joints:
             continue
 
         gt_joints1 = np.expand_dims(joints, axis=0)  # [1, Num_people, Num_joints, 2]
@@ -107,10 +107,8 @@ def remove_duplicate_annotations(coco: COCO) -> COCO:
         duplicate_mask = np.triu(diffmean < 2, k=1)
         duplicate_indexes_i, duplicate_indexes_j = np.nonzero(duplicate_mask)
 
-        for j in duplicate_indexes_j:
-            ann_to_remove.append(ann_ids[j])
-
-    if len(ann_to_remove) > 0:
+        ann_to_remove.extend(ann_ids[j] for j in duplicate_indexes_j)
+    if ann_to_remove:
         logger.debug(f"Removing {len(ann_to_remove)} duplicate annotations")
         len_before = len(coco.dataset["annotations"])
         coco.dataset["annotations"] = [v for v in coco.dataset["annotations"] if v["id"] not in ann_to_remove]
@@ -129,11 +127,8 @@ def remove_crowd_annotations(coco: COCO):
         ann_ids = coco.getAnnIds(imgIds=image_id)
         annotations = coco.loadAnns(ann_ids)
 
-        for ann in annotations:
-            if bool(ann["iscrowd"]):
-                ann_to_remove.append(ann["id"])
-
-    if len(ann_to_remove) > 0:
+        ann_to_remove.extend(ann["id"] for ann in annotations if bool(ann["iscrowd"]))
+    if ann_to_remove:
         logger.debug(f"Removing {len(ann_to_remove)} crowd annotations")
         len_before = len(coco.dataset["annotations"])
         coco.dataset["annotations"] = [v for v in coco.dataset["annotations"] if v["id"] not in ann_to_remove]

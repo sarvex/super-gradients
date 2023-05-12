@@ -212,7 +212,7 @@ class DetectionDataset(Dataset):
                 continue
             annotations.append(img_annotation)
 
-        if len(annotations) == 0:
+        if not annotations:
             raise EmptyDatasetException(
                 f"Out of {self.n_available_samples} images, not a single one was found with any of these classes: {self.class_inclusion_list}"
             )
@@ -250,7 +250,11 @@ class DetectionDataset(Dataset):
                 target[cls_posx] = self.class_inclusion_list.index(cls_name)
                 targets_kept.append(target)
 
-        return np.array(targets_kept) if len(targets_kept) > 0 else np.zeros((0, 5), dtype=np.float32)
+        return (
+            np.array(targets_kept)
+            if targets_kept
+            else np.zeros((0, 5), dtype=np.float32)
+        )
 
     def _cache_images(self) -> np.ndarray:
         """Cache the images. The cached image are stored in a file to be loaded faster mext time.
@@ -367,13 +371,12 @@ class DetectionDataset(Dataset):
         :param index:  Image index
         :return:       Resized image
         """
-        if self.cache:
-            padded_image = self.cached_imgs_padded[index]
-            resized_height, resized_width = self.annotations[index]["resized_img_shape"]
-            resized_image = padded_image[:resized_height, :resized_width, :]
-            return resized_image.copy()
-        else:
+        if not self.cache:
             return self._load_resized_img(index)
+        padded_image = self.cached_imgs_padded[index]
+        resized_height, resized_width = self.annotations[index]["resized_img_shape"]
+        resized_image = padded_image[:resized_height, :resized_width, :]
+        return resized_image.copy()
 
     def apply_transforms(self, sample: Dict[str, Union[np.ndarray, Any]]) -> Dict[str, Union[np.ndarray, Any]]:
         """
@@ -418,7 +421,7 @@ class DetectionDataset(Dataset):
         """Get the index of a non-empty annotation.
         :return: Image index"""
         target, index = [], -1
-        while len(target) == 0:
+        while not target:
             index = self._random_index()
             target = self.annotations[index]["target"]
         return index
@@ -444,7 +447,6 @@ class DetectionDataset(Dataset):
                                         If False, the plot will be over the raw samples (i.e. on get_sample)
         :return:
         """
-        plot_counter = 0
         input_format = self.output_target_format if plot_transformed_data else self.original_target_format
         if isinstance(input_format, DetectionTargetsFormat):
             raise ValueError(
@@ -452,7 +454,7 @@ class DetectionDataset(Dataset):
             )
         target_format_transform = DetectionTargetsFormatTransform(input_format=input_format, output_format=XYXY_LABEL)
 
-        for plot_i in range(n_plots):
+        for plot_counter, plot_i in enumerate(range(n_plots), start=1):
             fig = plt.figure(figsize=(10, 10))
             n_subplot = int(np.ceil(max_samples_per_plot**0.5))
             for img_i in range(max_samples_per_plot):
@@ -479,7 +481,6 @@ class DetectionDataset(Dataset):
             plt.show()
             plt.close()
 
-            plot_counter += 1
             if plot_counter == n_plots:
                 return
 
@@ -494,10 +495,11 @@ class DetectionDataset(Dataset):
             pipeline += [{Processings.DetectionLongestMaxSizeRescale: {"output_shape": self.input_dim}}]
         for t in self.transforms:
             pipeline += t.get_equivalent_preprocessing()
-        params = dict(
+        return dict(
             class_names=self.classes,
-            image_processor={Processings.ComposeProcessing: {"processings": pipeline}},
+            image_processor={
+                Processings.ComposeProcessing: {"processings": pipeline}
+            },
             iou=0.65,
             conf=0.5,
         )
-        return params

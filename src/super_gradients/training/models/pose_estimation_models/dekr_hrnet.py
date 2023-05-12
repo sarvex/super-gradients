@@ -174,17 +174,17 @@ class HighResolutionModule(nn.Module):
 
     def _check_branches(self, num_branches, blocks, num_blocks, num_inchannels, num_channels):
         if num_branches != len(num_blocks):
-            error_msg = "NUM_BRANCHES({}) <> NUM_BLOCKS({})".format(num_branches, len(num_blocks))
+            error_msg = f"NUM_BRANCHES({num_branches}) <> NUM_BLOCKS({len(num_blocks)})"
             logger.error(error_msg)
             raise ValueError(error_msg)
 
         if num_branches != len(num_channels):
-            error_msg = "NUM_BRANCHES({}) <> NUM_CHANNELS({})".format(num_branches, len(num_channels))
+            error_msg = f"NUM_BRANCHES({num_branches}) <> NUM_CHANNELS({len(num_channels)})"
             logger.error(error_msg)
             raise ValueError(error_msg)
 
         if num_branches != len(num_inchannels):
-            error_msg = "NUM_BRANCHES({}) <> NUM_INCHANNELS({})".format(num_branches, len(num_inchannels))
+            error_msg = f"NUM_BRANCHES({num_branches}) <> NUM_INCHANNELS({len(num_inchannels)})"
             logger.error(error_msg)
             raise ValueError(error_msg)
 
@@ -196,20 +196,26 @@ class HighResolutionModule(nn.Module):
                 nn.BatchNorm2d(num_channels[branch_index] * block.expansion),
             )
 
-        layers = []
-        layers.append(block(self.num_inchannels[branch_index], num_channels[branch_index], stride, downsample))
+        layers = [
+            block(
+                self.num_inchannels[branch_index],
+                num_channels[branch_index],
+                stride,
+                downsample,
+            )
+        ]
         self.num_inchannels[branch_index] = num_channels[branch_index] * block.expansion
-        for i in range(1, num_blocks[branch_index]):
-            layers.append(block(self.num_inchannels[branch_index], num_channels[branch_index]))
-
+        layers.extend(
+            block(self.num_inchannels[branch_index], num_channels[branch_index])
+            for _ in range(1, num_blocks[branch_index])
+        )
         return nn.Sequential(*layers)
 
     def _make_branches(self, num_branches, block, num_blocks, num_channels):
-        branches = []
-
-        for i in range(num_branches):
-            branches.append(self._make_one_branch(i, block, num_blocks, num_channels))
-
+        branches = [
+            self._make_one_branch(i, block, num_blocks, num_channels)
+            for i in range(num_branches)
+        ]
         return nn.ModuleList(branches)
 
     def _make_fuse_layers(self):
@@ -246,7 +252,14 @@ class HighResolutionModule(nn.Module):
                             num_outchannels_conv3x3 = num_inchannels[j]
                             conv3x3s.append(
                                 nn.Sequential(
-                                    nn.Conv2d(num_inchannels[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
+                                    nn.Conv2d(
+                                        num_outchannels_conv3x3,
+                                        num_outchannels_conv3x3,
+                                        3,
+                                        2,
+                                        1,
+                                        bias=False,
+                                    ),
                                     nn.BatchNorm2d(num_outchannels_conv3x3),
                                     nn.ReLU(True),
                                 )
@@ -271,10 +284,7 @@ class HighResolutionModule(nn.Module):
         for i in range(len(self.fuse_layers)):
             y = x[0] if i == 0 else self.fuse_layers[i][0](x[0])
             for j in range(1, self.num_branches):
-                if i == j:
-                    y = y + x[j]
-                else:
-                    y = y + self.fuse_layers[i][j](x[j])
+                y = y + x[j] if i == j else y + self.fuse_layers[i][j](x[j])
             x_fuse.append(self.relu(y))
 
         return x_fuse
@@ -312,10 +322,10 @@ class DEKRPoseEstimationModel(SgModule):
         for i in range(self.num_stages):
             num_channels = self.stages_spec.NUM_CHANNELS[i]
             transition_layer = self._make_transition_layer(num_channels_last, num_channels)
-            setattr(self, "transition{}".format(i + 1), transition_layer)
+            setattr(self, f"transition{i + 1}", transition_layer)
 
             stage, num_channels_last = self._make_stage(self.stages_spec, i, num_channels, True)
-            setattr(self, "stage{}".format(i + 2), stage)
+            setattr(self, f"stage{i + 2}", stage)
 
         # build head net
         inp_channels = int(sum(self.stages_spec.NUM_CHANNELS[-1]))
@@ -339,8 +349,6 @@ class DEKRPoseEstimationModel(SgModule):
         return nn.Sequential(*transition_layer)
 
     def _make_heatmap_head(self, layer_config: Mapping[str, Any]) -> nn.ModuleList:
-        heatmap_head_layers = []
-
         feature_conv = self._make_layer(
             blocks_dict[layer_config["BLOCK"]],
             layer_config["NUM_CHANNELS"],
@@ -348,8 +356,7 @@ class DEKRPoseEstimationModel(SgModule):
             layer_config["NUM_BLOCKS"],
             dilation=layer_config["DILATION_RATE"],
         )
-        heatmap_head_layers.append(feature_conv)
-
+        heatmap_head_layers = [feature_conv]
         heatmap_conv = nn.Conv2d(
             in_channels=layer_config["NUM_CHANNELS"],
             out_channels=self.num_joints_with_center,
@@ -399,12 +406,11 @@ class DEKRPoseEstimationModel(SgModule):
                 nn.BatchNorm2d(planes * block.expansion),
             )
 
-        layers = []
-        layers.append(block(inplanes, planes, stride, downsample, dilation=dilation))
+        layers = [block(inplanes, planes, stride, downsample, dilation=dilation)]
         inplanes = planes * block.expansion
-        for _ in range(1, blocks):
-            layers.append(block(inplanes, planes, dilation=dilation))
-
+        layers.extend(
+            block(inplanes, planes, dilation=dilation) for _ in range(1, blocks)
+        )
         return nn.Sequential(*layers)
 
     def _make_transition_layer(self, num_channels_pre_layer, num_channels_cur_layer):
@@ -445,11 +451,7 @@ class DEKRPoseEstimationModel(SgModule):
         modules = []
         for i in range(num_modules):
             # multi_scale_output is only used last module
-            if not multi_scale_output and i == num_modules - 1:
-                reset_multi_scale_output = False
-            else:
-                reset_multi_scale_output = True
-
+            reset_multi_scale_output = bool(multi_scale_output or i != num_modules - 1)
             modules.append(HighResolutionModule(num_branches, block, num_blocks, num_inchannels, num_channels, fuse_method, reset_multi_scale_output))
             num_inchannels = modules[-1].get_num_inchannels()
 
@@ -467,13 +469,13 @@ class DEKRPoseEstimationModel(SgModule):
         y_list = [x]
         for i in range(self.num_stages):
             x_list = []
-            transition = getattr(self, "transition{}".format(i + 1))
+            transition = getattr(self, f"transition{i + 1}")
             for j in range(self.stages_spec["NUM_BRANCHES"][i]):
                 if transition[j]:
                     x_list.append(transition[j](y_list[-1]))
                 else:
                     x_list.append(y_list[j])
-            y_list = getattr(self, "stage{}".format(i + 2))(x_list)
+            y_list = getattr(self, f"stage{i + 2}")(x_list)
 
         x0_h, x0_w = y_list[0].size(2), y_list[0].size(3)
         x = torch.cat(
@@ -488,14 +490,18 @@ class DEKRPoseEstimationModel(SgModule):
 
         heatmap = self.head_heatmap[1](self.head_heatmap[0](self.transition_heatmap(x)))
 
-        final_offset = []
         offset_feature = self.transition_offset(x)
 
-        for j in range(self.num_joints):
-            final_offset.append(
-                self.offset_final_layer[j](self.offset_feature_layers[j](offset_feature[:, j * self.offset_prekpt : (j + 1) * self.offset_prekpt]))
+        final_offset = [
+            self.offset_final_layer[j](
+                self.offset_feature_layers[j](
+                    offset_feature[
+                        :, j * self.offset_prekpt : (j + 1) * self.offset_prekpt
+                    ]
+                )
             )
-
+            for j in range(self.num_joints)
+        ]
         offset = torch.cat(final_offset, dim=1)
         return self.heatmap_activation(heatmap), offset
 

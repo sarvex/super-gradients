@@ -53,7 +53,10 @@ class ModelWeightAveraging:
             )
 
         else:
-            averaging_snapshots_dict = {"snapshot" + str(i): None for i in range(self.number_of_models_to_average)}
+            averaging_snapshots_dict = {
+                f"snapshot{str(i)}": None
+                for i in range(self.number_of_models_to_average)
+            }
             # if metric to watch is acc, hold a zero array, if loss hold inf array
             if self.greater_is_better:
                 averaging_snapshots_dict["snapshots_metric"] = -1 * np.inf * np.ones(self.number_of_models_to_average)
@@ -77,7 +80,7 @@ class ModelWeightAveraging:
             new_sd = model.state_dict()
             new_sd = move_state_dict_to_device(new_sd, "cpu")
 
-            averaging_snapshots_dict["snapshot" + str(update_ind)] = new_sd
+            averaging_snapshots_dict[f"snapshot{str(update_ind)}"] = new_sd
             averaging_snapshots_dict["snapshots_metric"][update_ind] = validation_results_tuple[self.metric_idx]
 
         return averaging_snapshots_dict
@@ -99,8 +102,8 @@ class ModelWeightAveraging:
         torch.save(averaging_snapshots_dict, self.averaging_snapshots_file)
         average_model_sd = averaging_snapshots_dict["snapshot0"]
         for n_model in range(1, self.number_of_models_to_average):
-            if averaging_snapshots_dict["snapshot" + str(n_model)] is not None:
-                net_sd = averaging_snapshots_dict["snapshot" + str(n_model)]
+            if averaging_snapshots_dict[f"snapshot{str(n_model)}"] is not None:
+                net_sd = averaging_snapshots_dict[f"snapshot{str(n_model)}"]
                 # USING MOVING AVERAGE
                 for key in average_model_sd:
                     average_model_sd[key] = torch.true_divide(average_model_sd[key] * n_model + net_sd[key], (n_model + 1))

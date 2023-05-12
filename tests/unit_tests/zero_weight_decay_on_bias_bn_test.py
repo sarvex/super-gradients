@@ -112,10 +112,10 @@ class ToySgModule(SgModule):
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
         # Example to different learning rates, similar to ShelfNet, in order to create multiple groups.
         if self.multiple_param_groups:
-            params_list = [{"named_params": self.base.named_parameters(), "lr": lr}, {"named_params": self.head.named_parameters(), "lr": lr * 10}]
-
-            return params_list
-
+            return [
+                {"named_params": self.base.named_parameters(), "lr": lr},
+                {"named_params": self.head.named_parameters(), "lr": lr * 10},
+            ]
         return super().initialize_param_groups(lr, training_params)
 
 
@@ -144,14 +144,12 @@ class ZeroWdForBnBiasTest(unittest.TestCase):
             self.assertEqual(
                 len(param_group["params"]),
                 excpected_num_params,
-                msg="Wrong number of params for optimizer param group, excpected: {}, found: {}".format(excpected_num_params, len(param_group["params"])),
+                msg=f'Wrong number of params for optimizer param group, excpected: {excpected_num_params}, found: {len(param_group["params"])}',
             )
             self.assertEqual(
                 param_group["weight_decay"],
                 excpected_weight_decay,
-                msg="Wrong weight decay value found for optimizer param group, excpected: {}, found: {}".format(
-                    excpected_weight_decay, param_group["weight_decay"]
-                ),
+                msg=f'Wrong weight decay value found for optimizer param group, excpected: {excpected_weight_decay}, found: {param_group["weight_decay"]}',
             )
 
     def test_zero_wd_one_group(self):

@@ -27,7 +27,8 @@ def replace_activations(module: nn.Module, new_activation: nn.Module, activation
     # check arguments once before the recursion
     assert isinstance(new_activation, nn.Module), "new_activation should be nn.Module"
     assert all(
-        [isinstance(t, type) and issubclass(t, nn.Module) for t in activations_to_replace]
+        isinstance(t, type) and issubclass(t, nn.Module)
+        for t in activations_to_replace
     ), "activations_to_replace should be types that are subclasses of nn.Module"
 
     # do the replacement

@@ -41,9 +41,10 @@ class S3Connector(ILogger):
         except botocore.exceptions.ClientError as ex:
             if ex.response["Error"]["Code"] == "404":
                 return False
-            else:
-                self._logger.error("Failed to check key: " + str(s3_key_to_check) + " existence in bucket" + str(self.bucket_name))
-                return None
+            self._logger.error(
+                f"Failed to check key: {s3_key_to_check} existence in bucket{str(self.bucket_name)}"
+            )
+            return None
         else:
             return True
 
@@ -57,13 +58,18 @@ class S3Connector(ILogger):
         """
         try:
             etag = etag.strip('"')
-            s3_object = self.s3_client.get_object(Bucket=self.bucket_name, Key=bucket_relative_file_name, IfMatch=etag)
-            return s3_object
+            return self.s3_client.get_object(
+                Bucket=self.bucket_name,
+                Key=bucket_relative_file_name,
+                IfMatch=etag,
+            )
         except botocore.exceptions.ClientError as ex:
             if ex.response["Error"]["Code"] == "404":
                 return False
             else:
-                self._logger.error("Failed to check ETag: " + str(etag) + " existence in bucket " + str(self.bucket_name))
+                self._logger.error(
+                    f"Failed to check ETag: {etag} existence in bucket {str(self.bucket_name)}"
+                )
         return
 
     @explicit_params_validation(validation_type="NoneOrEmpty")
@@ -75,7 +81,7 @@ class S3Connector(ILogger):
         """
         try:
             # TODO: Change bucket_owner_arn to the company's proper IAM Role
-            self._logger.info("Creating Bucket: " + self.bucket_name)
+            self._logger.info(f"Creating Bucket: {self.bucket_name}")
             create_bucket_response = self.s3_client.create_bucket(ACL="private", Bucket=self.bucket_name)
             self._logger.info(f"Successfully created bucket: {create_bucket_response}")
 
@@ -98,11 +104,11 @@ class S3Connector(ILogger):
         :raises ClientError: If the creation failed for any reason.
         """
         try:
-            self._logger.info("Deleting Bucket: " + self.bucket_name + " from S3")
+            self._logger.info(f"Deleting Bucket: {self.bucket_name} from S3")
             bucket = self.s3_resource.Bucket(self.bucket_name)
             bucket.objects.all().delete()
             bucket.delete()
-            self._logger.debug("Successfully Deleted Bucket: " + self.bucket_name + " from S3")
+            self._logger.debug(f"Successfully Deleted Bucket: {self.bucket_name} from S3")
         except botocore.exceptions.ClientError as ex:
             self._logger.fatal(f"Failed to delete bucket {self.bucket_name}: {ex}")
             raise ex
@@ -114,7 +120,7 @@ class S3Connector(ILogger):
             return self.s3_client.head_object(Bucket=self.bucket_name, Key=s3_key)
         except botocore.exceptions.ClientError as ex:
             if ex.response["Error"]["Code"] == "404":
-                msg = "[" + sys._getframe().f_code.co_name + "] - Key does not exist in bucket)"
+                msg = f"[{sys._getframe().f_code.co_name}] - Key does not exist in bucket)"
                 self._logger.error(msg)
                 raise KeyNotExistInBucketError(msg)
             raise ex
@@ -127,15 +133,21 @@ class S3Connector(ILogger):
             :return: True/False if the operation succeeded/failed
         """
         try:
-            self._logger.debug("Deleting Key: " + s3_key_to_delete + " from S3 bucket: " + self.bucket_name)
+            self._logger.debug(
+                f"Deleting Key: {s3_key_to_delete} from S3 bucket: {self.bucket_name}"
+            )
             obj_status = self.s3_client.head_object(Bucket=self.bucket_name, Key=s3_key_to_delete)
         except botocore.exceptions.ClientError as ex:
             if ex.response["Error"]["Code"] == "404":
-                self._logger.error("[" + sys._getframe().f_code.co_name + "] - Key does not exist in bucket)")
+                self._logger.error(
+                    f"[{sys._getframe().f_code.co_name}] - Key does not exist in bucket)"
+                )
             return False
 
         if obj_status["ContentLength"]:
-            self._logger.debug("[" + sys._getframe().f_code.co_name + "] - Deleting file s3://" + self.bucket_name + s3_key_to_delete)
+            self._logger.debug(
+                f"[{sys._getframe().f_code.co_name}] - Deleting file s3://{self.bucket_name}{s3_key_to_delete}"
+            )
             self.s3_client.delete_object(Bucket=self.bucket_name, Key=s3_key_to_delete)
 
         return True
@@ -150,12 +162,14 @@ class S3Connector(ILogger):
             :return True/False if the operation succeeded/failed
         """
         try:
-            self._logger.debug("Uploading Key: " + key + " to S3 bucket: " + self.bucket_name)
+            self._logger.debug(f"Uploading Key: {key} to S3 bucket: {self.bucket_name}")
             buffer = BytesIO(file)
             self.upload_buffer(key, buffer)
             return True
         except Exception as ex:
-            self._logger.critical("[" + sys._getframe().f_code.co_name + "] - Caught Exception while trying to upload file " + str(key) + "to S3" + str(ex))
+            self._logger.critical(
+                f"[{sys._getframe().f_code.co_name}] - Caught Exception while trying to upload file {key}to S3{str(ex)}"
+            )
             return False
 
     @explicit_params_validation(validation_type="NoneOrEmpty")
@@ -168,7 +182,7 @@ class S3Connector(ILogger):
             :return True/False if the operation succeeded/failed
         """
         try:
-            self._logger.debug("Uploading Key: " + key + " to S3 bucket: " + self.bucket_name)
+            self._logger.debug(f"Uploading Key: {key} to S3 bucket: {self.bucket_name}")
 
             self.s3_client.upload_file(Bucket=self.bucket_name, Filename=filename_to_upload, Key=key)
             return True
@@ -187,11 +201,15 @@ class S3Connector(ILogger):
             :return:                   True/False if the operation succeeded/failed
         """
         try:
-            self._logger.debug("Uploading Key: " + key_to_download + " from S3 bucket: " + self.bucket_name)
+            self._logger.debug(
+                f"Uploading Key: {key_to_download} from S3 bucket: {self.bucket_name}"
+            )
             self.s3_client.download_file(Bucket=self.bucket_name, Filename=target_path, Key=key_to_download)
         except botocore.exceptions.ClientError as ex:
             if ex.response["Error"]["Code"] == "404":
-                self._logger.error("[" + sys._getframe().f_code.co_name + "] - Key does exist in bucket)")
+                self._logger.error(
+                    f"[{sys._getframe().f_code.co_name}] - Key does exist in bucket)"
+                )
             else:
                 self._logger.critical(f"[{sys._getframe().f_code.co_name}] - Caught Exception while trying to download key {key_to_download} from S3 {ex}")
             return False
@@ -208,19 +226,27 @@ class S3Connector(ILogger):
         :return:
         """
         if not os.path.isdir(local_download_dir):
-            raise ValueError("[" + sys._getframe().f_code.co_name + "] - Provided directory does not exist")
+            raise ValueError(
+                f"[{sys._getframe().f_code.co_name}] - Provided directory does not exist"
+            )
 
         paginator = self.s3_client.get_paginator("list_objects")
-        prefix = s3_bucket_path_prefix if not s3_file_path_prefix else s3_bucket_path_prefix + "/" + s3_file_path_prefix
+        prefix = (
+            s3_bucket_path_prefix
+            if not s3_file_path_prefix
+            else f"{s3_bucket_path_prefix}/{s3_file_path_prefix}"
+        )
         page_iterator = paginator.paginate(Bucket=self.bucket_name, Prefix=prefix)
 
         for item in page_iterator.search("Contents"):
-            if item is not None:
-                if item["Key"] == s3_bucket_path_prefix:
-                    continue
+            if item is not None and item["Key"] == s3_bucket_path_prefix:
+                continue
             key_to_download = item["Key"]
             local_filename = key_to_download.split("/")[-1]
-            self.download_key(target_path=local_download_dir + "/" + local_filename, key_to_download=key_to_download)
+            self.download_key(
+                target_path=f"{local_download_dir}/{local_filename}",
+                key_to_download=key_to_download,
+            )
 
     @explicit_params_validation(validation_type="NoneOrEmpty")
     def download_file_by_path(self, s3_file_path: str, local_download_dir: str):
@@ -231,10 +257,15 @@ class S3Connector(ILogger):
         """
 
         if not os.path.isdir(local_download_dir):
-            raise ValueError("[" + sys._getframe().f_code.co_name + "] - Provided directory does not exist")
+            raise ValueError(
+                f"[{sys._getframe().f_code.co_name}] - Provided directory does not exist"
+            )
 
         local_filename = s3_file_path.split("/")[-1]
-        self.download_key(target_path=local_download_dir + "/" + local_filename, key_to_download=s3_file_path)
+        self.download_key(
+            target_path=f"{local_download_dir}/{local_filename}",
+            key_to_download=s3_file_path,
+        )
         return local_filename
 
     @explicit_params_validation(validation_type="NoneOrEmpty")
@@ -271,7 +302,9 @@ class S3Connector(ILogger):
         try:
             s3_response = self.s3_client.delete_objects(Bucket=self.bucket_name, Delete=files_dict_to_delete)
         except Exception as ex:
-            self._logger.critical("[" + sys._getframe().f_code.co_name + "] - Caught Exception while trying to delete keys " + "from S3 " + str(ex))
+            self._logger.critical(
+                f"[{sys._getframe().f_code.co_name}] - Caught Exception while trying to delete keys from S3 {str(ex)}"
+            )
         if "Errors" in s3_response:
             errors_list.append(s3_response["Errors"])
 
@@ -298,12 +331,11 @@ class S3Connector(ILogger):
         else:
             page_iterator = paginator.paginate(Bucket=self.bucket_name)
 
-        bucket_objects = []
-        for item in page_iterator.search("Contents"):
-            if not item or item["Key"] == self.bucket_name:
-                continue
-            bucket_objects.append(item)
-        return bucket_objects
+        return [
+            item
+            for item in page_iterator.search("Contents")
+            if item and item["Key"] != self.bucket_name
+        ]
 
     @explicit_params_validation(validation_type="NoneOrEmpty")
     def create_presigned_upload_url(self, object_name: str, fields=None, conditions=None, expiration=3600):
@@ -317,13 +349,16 @@ class S3Connector(ILogger):
             url: URL to post to
             fields: Dictionary of form fields and values to submit with the POST request
         """
-        # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/s3-presigned-urls.html#generating-a-presigned-url-to-upload-a-file
-        file_already_exist = self.check_key_exists(object_name)
-        if file_already_exist:
+        if file_already_exist := self.check_key_exists(object_name):
             raise FileExistsError(f"The key {object_name} already exists in bucket {self.bucket_name}")
 
-        response = self.s3_client.generate_presigned_post(self.bucket_name, object_name, Fields=fields, Conditions=conditions, ExpiresIn=expiration)
-        return response
+        return self.s3_client.generate_presigned_post(
+            self.bucket_name,
+            object_name,
+            Fields=fields,
+            Conditions=conditions,
+            ExpiresIn=expiration,
+        )
 
     @explicit_params_validation(validation_type="NoneOrEmpty")
     def create_presigned_download_url(self, bucket_name: str, object_name: str, expiration=3600):
@@ -333,9 +368,11 @@ class S3Connector(ILogger):
         :param expiration: Time in seconds for the presigned URL to remain valid
         :return: URL encoded with the credentials in the query, to be fetched using any HTTP client.
         """
-        # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/s3-presigned-urls.html
-        response = self.s3_client.generate_presigned_url("get_object", Params={"Bucket": bucket_name, "Key": object_name}, ExpiresIn=expiration)
-        return response
+        return self.s3_client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": bucket_name, "Key": object_name},
+            ExpiresIn=expiration,
+        )
 
     @staticmethod
     def convert_content_length_to_mb(content_length):

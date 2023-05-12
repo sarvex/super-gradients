@@ -81,8 +81,11 @@ def load_experiment_cfg(experiment_name: str, ckpt_root_dir: str = None) -> Dict
     # Load overrides that were used in previous run
     overrides_cfg = list(OmegaConf.load(resume_dir / "overrides.yaml"))
 
-    cfg = load_recipe(config_name="config.yaml", recipes_dir_path=normalize_path(str(resume_dir)), overrides=overrides_cfg)
-    return cfg
+    return load_recipe(
+        config_name="config.yaml",
+        recipes_dir_path=normalize_path(str(resume_dir)),
+        overrides=overrides_cfg,
+    )
 
 
 def add_params_to_cfg(cfg: DictConfig, params: List[str]):

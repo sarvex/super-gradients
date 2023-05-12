@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 
 try:
     import wandb
-except (ModuleNotFoundError, ImportError, NameError):
+except (ImportError, NameError):
     pass  # no action or logging - this is normal in most cases
 
 
@@ -84,10 +84,9 @@ class WandBSGLogger(BaseSGLogger):
             monitor_system=False,
         )
 
-        if api_server is not None:
-            if api_server != env_variables.WANDB_BASE_URL:
-                logger.warning(f"WANDB_BASE_URL environment parameter not set to {api_server}. Setting the parameter")
-                os.environ["WANDB_BASE_URL"] = api_server
+        if api_server is not None and api_server != env_variables.WANDB_BASE_URL:
+            logger.warning(f"WANDB_BASE_URL environment parameter not set to {api_server}. Setting the parameter")
+            os.environ["WANDB_BASE_URL"] = api_server
 
         # allow passing an arbitrary pre-defined wandb_id
         wandb_id = kwargs.pop("wandb_id", None)

@@ -21,9 +21,7 @@ from super_gradients.training.utils import get_param
 
 
 def remove_starting_module(key: str):
-    if key.startswith("module."):
-        return key[7:]
-    return key
+    return key[7:] if key.startswith("module.") else key
 
 
 def process_loader(model, loader, post_prediction_callback, sigmas, metric: Optional[PoseEstimationMetrics] = None):

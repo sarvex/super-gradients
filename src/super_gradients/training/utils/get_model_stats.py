@@ -156,9 +156,8 @@ def _convert_summary_dict_to_string(summary: dict, high_verbosity: bool, input_d
         total_params += summary[layer]["nb_params"]
 
         total_output += np.prod(summary[layer]["output_shape"])
-        if "trainable" in summary[layer]:
-            if summary[layer]["trainable"]:
-                trainable_params += summary[layer]["nb_params"]
+        if "trainable" in summary[layer] and summary[layer]["trainable"]:
+            trainable_params += summary[layer]["nb_params"]
         if high_verbosity:
             summary_str += line_new + "\n"
 

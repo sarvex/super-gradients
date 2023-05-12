@@ -44,9 +44,13 @@ class IOUloss(nn.Module):
         supported_losses = ["iou", "giou"]
         supported_reductions = ["mean", "sum", "none"]
         if loss_type not in supported_losses:
-            raise ValueError("Illegal loss_type value: " + loss_type + ", expected one of: " + str(supported_losses))
+            raise ValueError(
+                f"Illegal loss_type value: {loss_type}, expected one of: {supported_losses}"
+            )
         if reduction not in supported_reductions:
-            raise ValueError("Illegal reduction value: " + reduction + ", expected one of: " + str(supported_reductions))
+            raise ValueError(
+                f"Illegal reduction value: {reduction}, expected one of: {supported_reductions}"
+            )
 
     def forward(self, pred, target):
         assert pred.shape[0] == target.shape[0]
@@ -583,7 +587,9 @@ class YoloXDetectionLoss(_Loss):
             try:
                 _, pos_idx = torch.topk(cost[gt_idx], k=dynamic_ks[gt_idx], largest=False)
             except Exception:
-                logger.warning("cost[gt_idx]: " + str(cost[gt_idx]) + " dynamic_ks[gt_idx]L " + str(dynamic_ks[gt_idx]))
+                logger.warning(
+                    f"cost[gt_idx]: {str(cost[gt_idx])} dynamic_ks[gt_idx]L {str(dynamic_ks[gt_idx])}"
+                )
             matching_matrix[gt_idx][pos_idx] = 1
 
         del topk_ious, dynamic_ks, pos_idx
@@ -878,8 +884,9 @@ class YoloXFastDetectionLoss(YoloXDetectionLoss):
              candidate_fg_ids = [0,0,0,1]
              result = [0,1,0,2]
         """
-        candidate_img_and_fg_ids_combined = torch.stack((candidate_img_ids, candidate_anchor_ids), dim=1).unique(dim=0, return_inverse=True)[1]
-        return candidate_img_and_fg_ids_combined
+        return torch.stack(
+            (candidate_img_ids, candidate_anchor_ids), dim=1
+        ).unique(dim=0, return_inverse=True)[1]
 
     def _compute_dynamic_ks(self, ids: torch.Tensor, ious: torch.Tensor, dynamic_ks_bias) -> torch.Tensor:
         """

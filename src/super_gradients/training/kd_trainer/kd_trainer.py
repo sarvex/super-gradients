@@ -198,12 +198,21 @@ class KDTrainer(Trainer):
     def _instantiate_kd_net(self, arch_params, architecture, run_teacher_on_eval, student, teacher):
         if isinstance(architecture, str):
             architecture_cls = KD_ARCHITECTURES[architecture]
-            net = architecture_cls(arch_params=arch_params, student=student, teacher=teacher, run_teacher_on_eval=run_teacher_on_eval)
+            return architecture_cls(
+                arch_params=arch_params,
+                student=student,
+                teacher=teacher,
+                run_teacher_on_eval=run_teacher_on_eval,
+            )
         elif isinstance(architecture, KDModule.__class__):
-            net = architecture(arch_params=arch_params, student=student, teacher=teacher, run_teacher_on_eval=run_teacher_on_eval)
+            return architecture(
+                arch_params=arch_params,
+                student=student,
+                teacher=teacher,
+                run_teacher_on_eval=run_teacher_on_eval,
+            )
         else:
-            net = architecture
-        return net
+            return architecture
 
     def _load_checkpoint_to_model(self):
         """
@@ -215,10 +224,12 @@ class KDTrainer(Trainer):
 
         if teacher_checkpoint_path is not None:
 
-            #  WARN THAT TEACHER_CKPT WILL OVERRIDE TEACHER'S PRETRAINED WEIGHTS
-            teacher_pretrained_weights = get_param(self.checkpoint_params, "teacher_pretrained_weights")
-            if teacher_pretrained_weights:
-                logger.warning(teacher_checkpoint_path + " checkpoint is " "overriding " + teacher_pretrained_weights + " for teacher model")
+            if teacher_pretrained_weights := get_param(
+                self.checkpoint_params, "teacher_pretrained_weights"
+            ):
+                logger.warning(
+                    f"{teacher_checkpoint_path} checkpoint is overriding {teacher_pretrained_weights} for teacher model"
+                )
 
             # ALWAYS LOAD ITS EMA IF IT EXISTS
             load_teachers_ema = "ema_net" in read_ckpt_state_dict(teacher_checkpoint_path).keys()
@@ -312,7 +323,7 @@ class KDTrainer(Trainer):
                 sg_logger. Format should be {"Config_title_1": {...}, "Config_title_2":{..}}, (optional, default=None)
         """
         kd_net = self.net or model
-        kd_arch_params = kd_arch_params or dict()
+        kd_arch_params = kd_arch_params or {}
         if kd_net is None:
             if student is None or teacher is None:
                 raise ValueError("Must pass student and teacher models or net (KDModule).")

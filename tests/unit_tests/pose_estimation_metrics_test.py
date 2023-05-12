@@ -212,25 +212,29 @@ class TestPoseEstimationMetrics(unittest.TestCase):
         for img in kpts.keys():
             # person x (keypoints)
             img_kpts = kpts[img]
-            # person x (keypoints)
-            # do not use nms, keep all detections
-            keep = []
-            if len(keep) == 0:
-                oks_nmsed_kpts.append(img_kpts)
-            else:
+            if keep := []:
                 oks_nmsed_kpts.append([img_kpts[_keep] for _keep in keep])
 
+            else:
+                oks_nmsed_kpts.append(img_kpts)
         classes = ["__background__", "person"]
         _class_to_coco_ind = {cls: i for i, cls in enumerate(classes)}
 
         data_pack = [
-            {"cat_id": _class_to_coco_ind[cls], "cls_ind": cls_ind, "cls": cls, "ann_type": "keypoints", "keypoints": oks_nmsed_kpts}
+            {
+                "cat_id": _class_to_coco_ind[cls],
+                "cls_ind": cls_ind,
+                "cls": cls,
+                "ann_type": "keypoints",
+                "keypoints": oks_nmsed_kpts,
+            }
             for cls_ind, cls in enumerate(classes)
-            if not cls == "__background__"
+            if cls != "__background__"
         ]
 
-        results = self._coco_keypoint_results_one_category_kernel(data_pack[0], num_joints=17)
-        return results
+        return self._coco_keypoint_results_one_category_kernel(
+            data_pack[0], num_joints=17
+        )
 
     def _coco_keypoint_results_one_category_kernel(self, data_pack, num_joints: int):
         cat_id = data_pack["cat_id"]
@@ -264,7 +268,7 @@ class TestPoseEstimationMetrics(unittest.TestCase):
                         "category_id": cat_id,
                         "keypoints": list(key_points[k]),
                         "score": img_kpts[k]["score"],
-                        "bbox": list([left_top[0], left_top[1], w, h]),
+                        "bbox": [left_top[0], left_top[1], w, h],
                     }
                 )
 
@@ -275,7 +279,11 @@ class TestPoseEstimationMetrics(unittest.TestCase):
         if keypoints[:, 2].max() > 0:
             num_keypoints = keypoints.shape[0]
             for i in range(num_keypoints):
-                tmp[i][0:3] = [float(keypoints[i][0]), float(keypoints[i][1]), float(keypoints[i][2])]
+                tmp[i][:3] = [
+                    float(keypoints[i][0]),
+                    float(keypoints[i][1]),
+                    float(keypoints[i][2]),
+                ]
 
         return tmp
 

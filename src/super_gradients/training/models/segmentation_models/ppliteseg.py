@@ -254,11 +254,18 @@ class PPLiteSegBase(SegmentationModule):
         """
         multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)
         multiply_lr_params, no_multiply_params = self._separate_lr_multiply_params()
-        param_groups = [
-            {"named_params": no_multiply_params, "lr": lr, "name": "no_multiply_params"},
-            {"named_params": multiply_lr_params, "lr": lr * multiply_head_lr, "name": "multiply_lr_params"},
+        return [
+            {
+                "named_params": no_multiply_params,
+                "lr": lr,
+                "name": "no_multiply_params",
+            },
+            {
+                "named_params": multiply_lr_params,
+                "lr": lr * multiply_head_lr,
+                "name": "multiply_lr_params",
+            },
         ]
-        return param_groups
 
     def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct, total_batch: int) -> list:
         multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)
@@ -283,7 +290,9 @@ class PPLiteSegBase(SegmentationModule):
 
     def prep_model_for_conversion(self, input_size: Union[tuple, list], stride_ratio: int = 32, **kwargs):
         if not torch_version_is_greater_or_equal(1, 11):
-            raise RuntimeError("PPLiteSeg model ONNX export requires torch => 1.11, torch installed: " + str(torch.__version__))
+            raise RuntimeError(
+                f"PPLiteSeg model ONNX export requires torch => 1.11, torch installed: {str(torch.__version__)}"
+            )
         super().prep_model_for_conversion(input_size, **kwargs)
         if isinstance(self.encoder.context_module, SPPM):
             self.encoder.context_module.prep_model_for_conversion(input_size=input_size, stride_ratio=stride_ratio)

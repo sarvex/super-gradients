@@ -16,7 +16,7 @@ from typing import Union, Mapping
 
 try:
     from torch.hub import download_url_to_file, load_state_dict_from_url
-except (ModuleNotFoundError, ImportError, NameError):
+except (ImportError, NameError):
     from torch.hub import _download_url_to_file as download_url_to_file
 
 
@@ -52,7 +52,7 @@ def adaptive_load_state_dict(net: torch.nn.Module, state_dict: dict, strict: Uni
                      that returns a desired weight for ckpt_val.
     :return:
     """
-    state_dict = state_dict["net"] if "net" in state_dict else state_dict
+    state_dict = state_dict.get("net", state_dict)
     try:
         strict_bool = strict if isinstance(strict, bool) else strict != StrictLoad.OFF
         net.load_state_dict(state_dict, strict=strict_bool)
@@ -129,12 +129,11 @@ def read_ckpt_state_dict(ckpt_path: str, device="cpu"):
     if not os.path.exists(ckpt_path):
         raise FileNotFoundError(f"Incorrect Checkpoint path: {ckpt_path} (This should be an absolute path)")
 
-    if device == "cuda":
-        state_dict = torch.load(ckpt_path)
-
-    else:
-        state_dict = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
-    return state_dict
+    return (
+        torch.load(ckpt_path)
+        if device == "cuda"
+        else torch.load(ckpt_path, map_location=lambda storage, loc: storage)
+    )
 
 
 def adapt_state_dict_to_fit_model_layer_names(model_state_dict: dict, source_ckpt: dict, exclude: list = [], solver: callable = None):
@@ -148,9 +147,13 @@ def adapt_state_dict_to_fit_model_layer_names(model_state_dict: dict, source_ckp
                                         that returns a desired weight for ckpt_val.
         :return: renamed checkpoint dict (if possible)
     """
-    if "net" in source_ckpt.keys():
+    if "net" in source_ckpt:
         source_ckpt = source_ckpt["net"]
-    model_state_dict_excluded = {k: v for k, v in model_state_dict.items() if not any(x in k for x in exclude)}
+    model_state_dict_excluded = {
+        k: v
+        for k, v in model_state_dict.items()
+        if all(x not in k for x in exclude)
+    }
     new_ckpt_dict = {}
     for (ckpt_key, ckpt_val), (model_key, model_val) in zip(source_ckpt.items(), model_state_dict_excluded.items()):
         if solver is not None:
@@ -168,7 +171,7 @@ def raise_informative_runtime_error(state_dict, checkpoint, exception_msg):
     """
     try:
         new_ckpt_dict = adapt_state_dict_to_fit_model_layer_names(state_dict, checkpoint)
-        temp_file = tempfile.NamedTemporaryFile().name + ".pt"
+        temp_file = f"{tempfile.NamedTemporaryFile().name}.pt"
         torch.save(new_ckpt_dict, temp_file)
         exception_msg = (
             f"\n{'=' * 200}\n{str(exception_msg)} \nconvert ckpt via the utils.adapt_state_dict_to_fit_"
@@ -207,7 +210,7 @@ def load_checkpoint_to_model(
         strict = StrictLoad(strict)
 
     if ckpt_local_path is None or not os.path.exists(ckpt_local_path):
-        error_msg = "Error - loading Model Checkpoint: Path {} does not exist".format(ckpt_local_path)
+        error_msg = f"Error - loading Model Checkpoint: Path {ckpt_local_path} does not exist"
         raise RuntimeError(error_msg)
 
     if load_backbone and not hasattr(net, "backbone"):
@@ -230,7 +233,9 @@ def load_checkpoint_to_model(
 
     message_suffix = " checkpoint." if not load_ema_as_net else " EMA checkpoint."
     message_model = "model" if not load_backbone else "model's backbone"
-    logger.info("Successfully loaded " + message_model + " weights from " + ckpt_local_path + message_suffix)
+    logger.info(
+        f"Successfully loaded {message_model} weights from {ckpt_local_path}{message_suffix}"
+    )
 
     if (isinstance(net, HasPredict) or (hasattr(net, "module") and isinstance(net.module, HasPredict))) and load_processing_params:
         if "processing_params" not in checkpoint.keys():
@@ -257,7 +262,7 @@ class MissingPretrainedWeightsException(Exception):
     """
 
     def __init__(self, desc):
-        self.message = "Missing pretrained wights: " + desc
+        self.message = f"Missing pretrained wights: {desc}"
         super().__init__(self.message)
 
 
@@ -267,19 +272,17 @@ def _yolox_ckpt_solver(ckpt_key, ckpt_val, model_key, model_val):
     """
 
     if (
-        ckpt_val.shape != model_val.shape
-        and ckpt_key == "module._backbone._modules_list.0.conv.conv.weight"
-        and model_key == "_backbone._modules_list.0.conv.weight"
+        ckpt_val.shape == model_val.shape
+        or ckpt_key != "module._backbone._modules_list.0.conv.conv.weight"
+        or model_key != "_backbone._modules_list.0.conv.weight"
     ):
-        model_val.data[:, :, ::2, ::2] = ckpt_val.data[:, :3]
-        model_val.data[:, :, 1::2, ::2] = ckpt_val.data[:, 3:6]
-        model_val.data[:, :, ::2, 1::2] = ckpt_val.data[:, 6:9]
-        model_val.data[:, :, 1::2, 1::2] = ckpt_val.data[:, 9:12]
-        replacement = model_val
-    else:
-        replacement = ckpt_val
+        return ckpt_val
 
-    return replacement
+    model_val.data[:, :, ::2, ::2] = ckpt_val.data[:, :3]
+    model_val.data[:, :, 1::2, ::2] = ckpt_val.data[:, 3:6]
+    model_val.data[:, :, ::2, 1::2] = ckpt_val.data[:, 6:9]
+    model_val.data[:, :, 1::2, 1::2] = ckpt_val.data[:, 9:12]
+    return model_val
 
 
 def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretrained_weights: str):
@@ -293,7 +296,7 @@ def load_pretrained_weights(model: torch.nn.Module, architecture: str, pretraine
     """
     from super_gradients.common.object_names import Models
 
-    model_url_key = architecture + "_" + str(pretrained_weights)
+    model_url_key = f"{architecture}_{pretrained_weights}"
     if model_url_key not in MODEL_URLS.keys():
         raise MissingPretrainedWeightsException(model_url_key)
 

@@ -181,11 +181,7 @@ class QARepVGGBlock(nn.Module):
         if self.partially_fused:
             return self.se(self.nonlinearity(self.post_bn(self.rbr_reparam(inputs))))
 
-        if self.identity is None:
-            id_out = 0.0
-        else:
-            id_out = self.identity(inputs)
-
+        id_out = 0.0 if self.identity is None else self.identity(inputs)
         x_3x3 = self.branch_3x3(inputs)
         x_1x1 = self.alpha * self.branch_1x1(inputs)
 

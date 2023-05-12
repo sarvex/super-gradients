@@ -79,17 +79,14 @@ class STDCBlock(nn.Module):
             )
 
     def forward(self, x):
-        out_list = []
         # run first conv
         x = self.conv_list[0](x)
-        out_list.append(self.skip_step1(x))
-
+        out_list = [self.skip_step1(x)]
         for conv in self.conv_list[1:]:
             x = conv(x)
             out_list.append(x)
 
-        out = torch.cat(out_list, dim=1)
-        return out
+        return torch.cat(out_list, dim=1)
 
 
 class AbstractSTDCBackbone(nn.Module, ABC):
@@ -182,7 +179,7 @@ class STDCBackbone(AbstractSTDCBackbone):
         # first block to apply stride 2.
         blocks = nn.ModuleList([block(in_channels, out_channels, stride=2, **kwargs)])
         # build rest of blocks
-        for i in range(num_blocks - 1):
+        for _ in range(num_blocks - 1):
             blocks.append(block(out_channels, out_channels, stride=1, **kwargs))
 
         return nn.Sequential(*blocks)
@@ -301,8 +298,7 @@ class FeatureFusionModule(nn.Module):
         feat = self.pw_conv(feat)
         atten = self.attention_block(feat)
         feat_atten = torch.mul(feat, atten)
-        feat_out = feat_atten + feat
-        return feat_out
+        return feat_atten + feat
 
 
 class ContextEmbedding(nn.Module):
@@ -478,7 +474,7 @@ class STDCSegmentationBase(SgModule):
         if use_aux is True, and self._use_aux_heads was already set to False a ValueError is raised, recreating
             aux and detail heads outside init method is not allowed, and the module should be recreated.
         """
-        if use_aux is True and self._use_aux_heads is False:
+        if use_aux and self._use_aux_heads is False:
             raise ValueError("Cant turn use_aux_heads from False to True, you should initiate the module again with" " `use_aux_heads=True`")
         if not use_aux:
             self._remove_auxiliary_and_detail_heads()

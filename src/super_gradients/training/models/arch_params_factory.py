@@ -17,7 +17,7 @@ def get_arch_params(config_name: str, overriding_params: Dict = None, recipes_di
                                 This directory should include a "arch_params" folder,
                                 which itself should include the config file named after config_name.
     """
-    overriding_params = overriding_params if overriding_params else dict()
+    overriding_params = overriding_params if overriding_params else {}
 
     arch_params = load_arch_params(config_name=config_name, recipes_dir_path=recipes_dir_path)
     arch_params = hydra.utils.instantiate(arch_params)

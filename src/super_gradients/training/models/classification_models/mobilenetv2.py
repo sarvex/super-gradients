@@ -89,10 +89,7 @@ class InvertedResidual(nn.Module):
             )
 
     def forward(self, x):
-        if self.use_res_connect:
-            return x + self.conv(x)
-        else:
-            return self.conv(x)
+        return x + self.conv(x) if self.use_res_connect else self.conv(x)
 
 
 class MobileNetV2(MobileNetBase):
@@ -154,9 +151,8 @@ class MobileNetV2(MobileNetBase):
         x = self.features(x)
         if self.backbone_mode:
             return x
-        else:
-            x = x.mean(3).mean(2)
-            return self.classifier(x)
+        x = x.mean(3).mean(2)
+        return self.classifier(x)
 
     def _extract_connection_layers_input_channel_size(self):
         """

@@ -47,9 +47,20 @@ def separate_zero_wd_params_groups_for_optimizer(module: nn.Module, net_named_pa
                 decay_params.append(param)
         # append two param groups from the original param group, with and without weight decay.
         extra_optim_params = {key: param_group[key] for key in param_group if key not in ["named_params", "weight_decay"]}
-        optimizer_param_groups.append({"params": no_decay_params, "weight_decay": 0.0, **extra_optim_params})
-        optimizer_param_groups.append({"params": decay_params, "weight_decay": weight_decay, **extra_optim_params})
-
+        optimizer_param_groups.extend(
+            (
+                {
+                    "params": no_decay_params,
+                    "weight_decay": 0.0,
+                    **extra_optim_params,
+                },
+                {
+                    "params": decay_params,
+                    "weight_decay": weight_decay,
+                    **extra_optim_params,
+                },
+            )
+        )
     return optimizer_param_groups
 
 
@@ -66,8 +77,7 @@ def _get_no_decay_param_ids(module: nn.Module):
     no_decay_ids = []
     for name, m in module.named_modules():
         if isinstance(m, batchnorm_types):
-            no_decay_ids.append(id(m.weight))
-            no_decay_ids.append(id(m.bias))
+            no_decay_ids.extend((id(m.weight), id(m.bias)))
         elif hasattr(m, "bias") and isinstance(m.bias, nn.Parameter):
             if not isinstance(m, torch_weight_with_bias_types):
                 logger.warning(
@@ -90,7 +100,11 @@ def build_optimizer(net: nn.Module, lr: float, training_params) -> optim.Optimiz
         optimizer_cls = OptimizersTypeFactory().get(training_params.optimizer)
     else:
         optimizer_cls = training_params.optimizer
-    optimizer_params = OPTIMIZERS_DEFAULT_PARAMS[optimizer_cls].copy() if optimizer_cls in OPTIMIZERS_DEFAULT_PARAMS.keys() else dict()
+    optimizer_params = (
+        OPTIMIZERS_DEFAULT_PARAMS[optimizer_cls].copy()
+        if optimizer_cls in OPTIMIZERS_DEFAULT_PARAMS.keys()
+        else {}
+    )
     optimizer_params.update(**training_params.optimizer_params)
     training_params.optimizer_params = optimizer_params
 

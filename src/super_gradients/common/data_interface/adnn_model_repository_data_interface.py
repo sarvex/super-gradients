@@ -79,20 +79,20 @@ class ADNNModelRepositoryDataInterfaces(ILogger):
                                                             is to overwrite a previous version of the same files
             :return: Model Checkpoint File Path -> Depends on model architecture
         """
-        ckpt_file_local_full_path = ckpt_destination_local_dir + "/" + ckpt_file_name
+        ckpt_file_local_full_path = f"{ckpt_destination_local_dir}/{ckpt_file_name}"
 
         if self.data_connection_source == "s3":
-            if overwrite_local_checkpoints_file:
-                # DELETE THE LOCAL VERSION ON THE MACHINE
-                if os.path.exists(ckpt_file_local_full_path):
-                    os.remove(ckpt_file_local_full_path)
+            if overwrite_local_checkpoints_file and os.path.exists(
+                ckpt_file_local_full_path
+            ):
+                os.remove(ckpt_file_local_full_path)
 
-            key_to_download = ckpt_source_remote_dir + "/" + ckpt_file_name
+            key_to_download = f"{ckpt_source_remote_dir}/{ckpt_file_name}"
             download_success = self.s3_connector.download_key(target_path=ckpt_file_local_full_path, key_to_download=key_to_download)
 
             if not download_success:
-                failed_download_path = "s3://" + self.model_repo_bucket_name + "/" + key_to_download
-                error_msg = "Failed to Download Model Checkpoint from " + failed_download_path
+                failed_download_path = f"s3://{self.model_repo_bucket_name}/{key_to_download}"
+                error_msg = f"Failed to Download Model Checkpoint from {failed_download_path}"
                 self._logger.error(error_msg)
                 raise ModelCheckpointNotFoundException(error_msg)
 
@@ -108,7 +108,9 @@ class ADNNModelRepositoryDataInterfaces(ILogger):
             :return:
         """
         if not os.path.isdir(model_checkpoint_dir_name):
-            raise ValueError("[" + sys._getframe().f_code.co_name + "] - Provided directory does not exist")
+            raise ValueError(
+                f"[{sys._getframe().f_code.co_name}] - Provided directory does not exist"
+            )
 
         # LOADS THE DATA FROM THE REMOTE REPOSITORY
         s3_bucket_path_prefix = model_name
@@ -133,11 +135,13 @@ class ADNNModelRepositoryDataInterfaces(ILogger):
             :return: True/False for Operation Success/Failure
         """
         # LOAD THE LOCAL VERSION
-        model_checkpoint_file_full_path = model_checkpoint_local_dir + "/" + checkpoints_file_name
+        model_checkpoint_file_full_path = (
+            f"{model_checkpoint_local_dir}/{checkpoints_file_name}"
+        )
 
         # SAVE ON THE REMOTE S3 REPOSITORY
         if self.data_connection_source == "s3":
-            model_checkpoint_s3_in_bucket_path = model_name + "/" + checkpoints_file_name
+            model_checkpoint_s3_in_bucket_path = f"{model_name}/{checkpoints_file_name}"
             return self.__update_or_upload_s3_key(model_checkpoint_file_full_path, model_checkpoint_s3_in_bucket_path)
 
     @explicit_params_validation(validation_type="NoneOrEmpty")
@@ -148,7 +152,9 @@ class ADNNModelRepositoryDataInterfaces(ILogger):
             :param model_checkpoint_dir_name: The directory where the files are stored in
         """
         if not os.path.isdir(model_checkpoint_dir_name):
-            raise ValueError("[" + sys._getframe().f_code.co_name + "] - Provided directory does not exist")
+            raise ValueError(
+                f"[{sys._getframe().f_code.co_name}] - Provided directory does not exist"
+            )
 
         for tb_events_file_name in os.listdir(model_checkpoint_dir_name):
             if tb_events_file_name.startswith(self.tb_events_file_prefix):
@@ -157,7 +163,7 @@ class ADNNModelRepositoryDataInterfaces(ILogger):
                 )
 
                 if not upload_success:
-                    self._logger.error("Failed to upload tb_events_file: " + tb_events_file_name)
+                    self._logger.error(f"Failed to upload tb_events_file: {tb_events_file_name}")
 
     @explicit_params_validation(validation_type="NoneOrEmpty")
     def __update_or_upload_s3_key(self, local_file_path: str, s3_key_path: str):
@@ -167,9 +173,7 @@ class ADNNModelRepositoryDataInterfaces(ILogger):
             :param s3_key_path:     The S3 path to create/update the S3 Key
         """
         if self.s3_connector.check_key_exists(s3_key_path):
-            # DELETE KEY TO UPDATE THE FILE IN S3
-            delete_response = self.s3_connector.delete_key(s3_key_path)
-            if delete_response:
+            if delete_response := self.s3_connector.delete_key(s3_key_path):
                 self._logger.info("Removed previous checkpoint from S3")
 
         upload_success = self.s3_connector.upload_file(local_file_path, s3_key_path)

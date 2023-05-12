@@ -69,9 +69,7 @@ class DeciClient:
                 logger.debug(e.body)
             return None
 
-        file_path = FilesDataInterface.download_temporary_file(file_url=download_link)
-
-        return file_path
+        return FilesDataInterface.download_temporary_file(file_url=download_link)
 
     def get_model_arch_params(self, model_name: str) -> Optional[DictConfig]:
         """Get the model arch_params from DeciPlatform.

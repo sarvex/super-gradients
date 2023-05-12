@@ -13,7 +13,7 @@ try:
     from super_gradients.training.utils.quantization.core import SkipQuantization, SGQuantMixin, QuantizedMapping, QuantizedMetadata
 
     _imported_pytorch_quantization_failure = None
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
+except (ImportError, NameError) as import_err:
     logger.warning("Failed to import pytorch_quantization")
     _imported_pytorch_quantization_failure = import_err
 
@@ -116,18 +116,17 @@ class SelectiveQuantizer:
     def _get_default_quant_descriptor(self, for_weights=False):
         methods = {"percentile": "histogram", "mse": "histogram", "entropy": "histogram", "histogram": "histogram", "max": "max"}
 
-        if for_weights:
-            axis = 0 if self.default_per_channel_quant_weights else None
-
-            learn_amax = self.default_learn_amax
-            if self.default_learn_amax and self.default_per_channel_quant_weights:
-                logger.error("Learnable amax is suported only for per-tensor quantization. Disabling it for weights quantization!")
-                learn_amax = False
-
-            return QuantDescriptor(calib_method=methods[self.default_quant_modules_calibrator_weights], axis=axis, learn_amax=learn_amax)
-        else:
+        if not for_weights:
             # activations stay per-tensor by default
             return QuantDescriptor(calib_method=methods[self.default_quant_modules_calibrator_inputs], learn_amax=self.default_learn_amax)
+        axis = 0 if self.default_per_channel_quant_weights else None
+
+        learn_amax = self.default_learn_amax
+        if self.default_learn_amax and self.default_per_channel_quant_weights:
+            logger.error("Learnable amax is suported only for per-tensor quantization. Disabling it for weights quantization!")
+            learn_amax = False
+
+        return QuantDescriptor(calib_method=methods[self.default_quant_modules_calibrator_weights], axis=axis, learn_amax=learn_amax)
 
     def register_skip_quantization(self, *, layer_names: Optional[Set[str]] = None):
         if layer_names is not None:
@@ -160,7 +159,7 @@ class SelectiveQuantizer:
         Relevant layer-specific mapping instructions are either `SkipQuantization` or `QuantizedMapping`, which are then
         being added to the mappings
         """
-        mapping_instructions = dict()
+        mapping_instructions = {}
         for name, child_module in module.named_children():
             nested_name = ".".join(nesting + (name,))
             if isinstance(child_module, SkipQuantization):
@@ -178,7 +177,9 @@ class SelectiveQuantizer:
                 )
 
             if isinstance(child_module, nn.Module):  # recursive call
-                mapping_instructions.update(self._preprocess_skips_and_custom_mappings(child_module, nesting + (name,)))
+                mapping_instructions |= self._preprocess_skips_and_custom_mappings(
+                    child_module, nesting + (name,)
+                )
 
         return mapping_instructions
 
@@ -192,11 +193,14 @@ class SelectiveQuantizer:
             )
 
         # USE PROVIDED QUANT DESCRIPTORS, OR DEFAULT IF NONE PROVIDED
-        quant_descriptors = dict()
+        quant_descriptors = {}
         if issubclass(metadata.quantized_target_class, (SGQuantMixin, QuantMixin, QuantInputMixin)):
             quant_descriptors = {"quant_desc_input": metadata.input_quant_descriptor or self._get_default_quant_descriptor(for_weights=False)}
         if issubclass(metadata.quantized_target_class, (SGQuantMixin, QuantMixin)):
-            quant_descriptors.update({"quant_desc_weight": metadata.weights_quant_descriptor or self._get_default_quant_descriptor(for_weights=True)})
+            quant_descriptors["quant_desc_weight"] = (
+                metadata.weights_quant_descriptor
+                or self._get_default_quant_descriptor(for_weights=True)
+            )
 
         if not hasattr(metadata.quantized_target_class, "from_float"):
             assert isinstance(metadata.quantized_target_class, SGQuantMixin), (
@@ -206,7 +210,7 @@ class SelectiveQuantizer:
         q_instance = metadata.quantized_target_class.from_float(float_module, **quant_descriptors)
 
         # MOVE TENSORS TO ORIGINAL DEVICE
-        if len(list(float_module.parameters(recurse=False))) > 0:
+        if list(float_module.parameters(recurse=False)):
             q_instance = q_instance.to(next(float_module.parameters(recurse=False)).device)
         elif len(list(float_module.buffers(recurse=False))):
             q_instance = q_instance.to(next(float_module.buffers(recurse=False)).device)

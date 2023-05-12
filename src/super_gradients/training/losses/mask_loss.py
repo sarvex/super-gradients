@@ -47,8 +47,7 @@ class MaskAttentionLoss(_Loss):
         mask_loss = apply_reduce(mask_loss, self.reduction)
         criterion_loss = apply_reduce(criterion_loss, self.reduction)
 
-        loss = criterion_loss * self.loss_weights[0] + mask_loss * self.loss_weights[1]
-        return loss
+        return criterion_loss * self.loss_weights[0] + mask_loss * self.loss_weights[1]
 
     def _broadcast_mask(self, mask: torch.Tensor, size: torch.Size):
         """

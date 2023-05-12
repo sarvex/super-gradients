@@ -29,10 +29,7 @@ class LadderBottleneck(nn.Module):
 
     def _sum_each(self, x, y):
         assert len(x) == len(y)
-        z = []
-        for i in range(len(x)):
-            z.append(x[i] + y[i])
-        return z
+        return [x[i] + y[i] for i in range(len(x))]
 
     def forward(self, x):
         residual = x
@@ -122,17 +119,24 @@ class LadderResNet(nn.Module):
             )
 
         layers = []
-        if dilation == 1 or dilation == 2:
+        if dilation in [1, 2]:
             layers.append(block(self.inplanes, planes, stride, dilation=1, downsample=downsample, previous_dilation=dilation, norm_layer=norm_layer))
         elif dilation == 4:
             layers.append(block(self.inplanes, planes, stride, dilation=2, downsample=downsample, previous_dilation=dilation, norm_layer=norm_layer))
         else:
-            raise RuntimeError("=> unknown dilation size: {}".format(dilation))
+            raise RuntimeError(f"=> unknown dilation size: {dilation}")
 
         self.inplanes = planes * block.expansion
-        for i in range(1, blocks):
-            layers.append(block(self.inplanes, planes, dilation=dilation, previous_dilation=dilation, norm_layer=norm_layer))
-
+        layers.extend(
+            block(
+                self.inplanes,
+                planes,
+                dilation=dilation,
+                previous_dilation=dilation,
+                norm_layer=norm_layer,
+            )
+            for _ in range(1, blocks)
+        )
         return nn.Sequential(*layers)
 
     def forward(self, x):
@@ -200,17 +204,8 @@ class BaseNet(nn.Module):
             self.backbone = LadderNetBackBone503433(num_classes=1000)
         elif backbone == "resnet101":
             self.backbone = LadderNetBackBone101(num_classes=1000)
-        # elif backbone == 'resnet152':
-        #     self.pretrained = resnet.resnet152(pretrained=True, dilated=dilated,
-        #                                        norm_layer=norm_layer, root=root)
-        # elif backbone == 'resnet18':
-        #     self.pretrained = resnet.resnet18(pretrained=True, dilated=dilated,
-        #                                        norm_layer=norm_layer, root=root)
-        # elif backbone == 'resnet34':
-        #     self.pretrained = resnet.resnet34(pretrained=True, dilated=dilated,
-        #                                        norm_layer=norm_layer, root=root)
         else:
-            raise RuntimeError("unknown backbone: {}".format(backbone))
+            raise RuntimeError(f"unknown backbone: {backbone}")
         # bilinear upsample options
         self._up_kwargs = up_kwargs
 
@@ -381,9 +376,7 @@ class Initial_LadderBlock(nn.Module):
         bottom = out
 
         # up branch
-        up_out = []
-        up_out.append(bottom)
-
+        up_out = [bottom]
         for j in range(0, self.layers):
             out = self.up_conv_list[j](out) + down_out[self.layers - j - 1]
             # out = F.relu(out)
@@ -421,9 +414,7 @@ class Decoder(nn.Module):
         bottom = out
 
         # up branch
-        up_out = []
-        up_out.append(bottom)
-
+        up_out = [bottom]
         for j in range(0, self.layers - 1):
             out = self.up_conv_list[j](out) + x[self.layers - j - 2]
             # out = F.relu(out)
@@ -485,9 +476,7 @@ class LadderBlock(nn.Module):
         bottom = out
 
         # up branch
-        up_out = []
-        up_out.append(bottom)
-
+        up_out = [bottom]
         for j in range(0, self.layers - 1):
             out = self.up_conv_list[j](out) + down_out[self.layers - j - 2]
             # out = F.relu(out)

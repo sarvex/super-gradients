@@ -95,14 +95,14 @@ class PascalVOCDetectionDataset(DetectionDataset):
                 f"If you don't have it locally, you can set PascalVOCDetectionDataset(..., download=True)"
             )
 
-        img_files = glob.glob(img_files_folder + "*.jpg")
-        if len(img_files) == 0:
+        img_files = glob.glob(f"{img_files_folder}*.jpg")
+        if not img_files:
             raise FileNotFoundError(f"No image file found at {img_files_folder}")
 
         target_files = [img_file.replace("images", "labels").replace(".jpg", ".txt") for img_file in img_files]
 
         img_and_target_path_list = [(img_file, target_file) for img_file, target_file in zip(img_files, target_files) if os.path.exists(target_file)]
-        if len(img_and_target_path_list) == 0:
+        if not img_and_target_path_list:
             raise FileNotFoundError("No target file associated to the images was found")
 
         num_missing_files = len(img_files) - len(img_and_target_path_list)
@@ -149,7 +149,10 @@ class PascalVOCDetectionDataset(DetectionDataset):
             labels = []
             for obj in xml_parser.iter("object"):
                 cls = obj.find("name").text
-                if cls in PASCAL_VOC_2012_CLASSES_LIST and not int(obj.find("difficult").text) == 1:
+                if (
+                    cls in PASCAL_VOC_2012_CLASSES_LIST
+                    and int(obj.find("difficult").text) != 1
+                ):
                     xml_box = obj.find("bndbox")
 
                     def get_coord(box_coord):
@@ -257,7 +260,7 @@ class PascalVOCUnifiedDetectionTrainDataset(ConcatDataset):
                 cache=cache,
                 cache_dir=cache_dir,
                 transforms=transforms,
-                images_sub_directory="images/" + trainset_name + "/",
+                images_sub_directory=f"images/{trainset_name}/",
                 class_inclusion_list=class_inclusion_list,
                 max_num_samples=max_num_samples_per_train_dataset[i],
             )

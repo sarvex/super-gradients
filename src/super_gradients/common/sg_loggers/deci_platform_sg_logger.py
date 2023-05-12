@@ -146,6 +146,5 @@ def log_stdout():
     with redirect_stdout(buffer):
         yield
 
-    redirected_str = buffer.getvalue()
-    if redirected_str:
+    if redirected_str := buffer.getvalue():
         logger.debug(msg=redirected_str)

@@ -100,7 +100,7 @@ class PoseEstimationMetrics(Metric):
         else:
             self.iou_thresholds_to_report = None
 
-        self.greater_component_is_better = dict((k, True) for k in self.stats_names)
+        self.greater_component_is_better = {k: True for k in self.stats_names}
 
         if oks_sigmas is None:
             oks_sigmas = np.array([0.26, 0.25, 0.25, 0.35, 0.35, 0.79, 0.79, 0.72, 0.72, 0.62, 0.62, 1.07, 1.07, 0.87, 0.87, 0.89, 0.89]) / 10.0
@@ -188,12 +188,12 @@ class PoseEstimationMetrics(Metric):
         if len(predicted_poses) == 0 and len(groundtruths) == 0:
             return
         if len(predicted_poses) != len(predicted_scores):
-            raise ValueError("Length of predicted poses and scores should be equal. Got {} and {}".format(len(predicted_poses), len(predicted_scores)))
+            raise ValueError(
+                f"Length of predicted poses and scores should be equal. Got {len(predicted_poses)} and {len(predicted_scores)}"
+            )
         if len(groundtruths) != len(gt_areas) != len(gt_bboxes) != len(gt_iscrowd):
             raise ValueError(
-                "Length of groundtruths, areas, bboxes and iscrowd should be equal. Got {} and {} and {} and {}".format(
-                    len(groundtruths), len(gt_areas), len(gt_bboxes), len(gt_iscrowd)
-                )
+                f"Length of groundtruths, areas, bboxes and iscrowd should be equal. Got {len(groundtruths)} and {len(gt_areas)} and {len(gt_bboxes)} and {len(gt_iscrowd)}"
             )
 
         predicted_poses = convert_to_tensor(predicted_poses, dtype=torch.float32, device=self.device)
@@ -276,7 +276,7 @@ class PoseEstimationMetrics(Metric):
             preds_matched = torch.cat([x[0].cpu() for x in predictions], dim=0)
             preds_to_ignore = torch.cat([x[1].cpu() for x in predictions], dim=0)
             preds_scores = torch.cat([x[2].cpu() for x in predictions], dim=0)
-            n_targets = sum([x[3] for x in predictions])
+            n_targets = sum(x[3] for x in predictions)
 
             cls_precision, _, cls_recall = compute_detection_metrics_per_cls(
                 preds_matched=preds_matched,
@@ -292,11 +292,7 @@ class PoseEstimationMetrics(Metric):
             recall[:, 0] = cls_recall.cpu().numpy()
 
         def summarize(s):
-            if len(s[s > -1]) == 0:
-                mean_s = -1
-            else:
-                mean_s = np.mean(s[s > -1])
-
+            mean_s = -1 if len(s[s > -1]) == 0 else np.mean(s[s > -1])
             return mean_s
 
         metrics = {"AP": summarize(precision), "AR": summarize(recall)}

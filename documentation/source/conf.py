@@ -32,14 +32,6 @@ author = "SuperGradients team"
 release = "3.0.9"
 
 
-# -- General configuration ---------------------------------------------------
-
-# Add any Sphinx extension module names here, as strings. They can be
-# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
-# ones.
-# extensions = ['sphinx.ext.todo', 'sphinx.ext.viewcode', 'sphinx.ext.autodoc']
-extensions = []
-
 autodoc_default_options = {
     "member-order": "bysource",
 }
@@ -55,22 +47,17 @@ exclude_patterns = []
 pygments_style = "sphinx"
 todo_include_todos = False
 
-# -- Options for HTML output -------------------------------------------------
-
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes.
-#
-
-extensions.append("sphinx.ext.todo")
-extensions.append("sphinx.ext.autodoc")
-extensions.append("sphinx.ext.autosummary")
-extensions.append("sphinx.ext.intersphinx")
-extensions.append("sphinx.ext.mathjax")
-extensions.append("sphinx.ext.viewcode")
-extensions.append("sphinx.ext.graphviz")
-extensions.append("sphinxcontrib.napoleon")
-extensions.append("myst_parser")
-
+extensions = [
+    "sphinx.ext.todo",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.graphviz",
+    "sphinxcontrib.napoleon",
+    "myst_parser",
+]
 autosummary_generate = True
 
 # html_theme = 'default'

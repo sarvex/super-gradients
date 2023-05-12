@@ -74,11 +74,10 @@ class BaseSgVisionDataset(VisionDataset):
             :param filename:
             :return:
         """
-        for valid_extension in self.valid_sample_extensions:
-            if filename.lower().endswith(valid_extension):
-                return True
-
-        return False
+        return any(
+            filename.lower().endswith(valid_extension)
+            for valid_extension in self.valid_sample_extensions
+        )
 
     @staticmethod
     def numpy_loader_func(path):
@@ -209,7 +208,9 @@ class DirectoryDataSet(BaseSgVisionDataset):
 
         for counter_name, missing_files_counter in [("samples", missing_sample_files), ("targets", missing_target_files)]:
             if missing_files_counter > 0:
-                print(__name__ + " There are " + str(missing_files_counter) + " missing  " + counter_name)
+                print(
+                    f"{__name__} There are {str(missing_files_counter)} missing  {counter_name}"
+                )
 
 
 class ListDataset(BaseSgVisionDataset):

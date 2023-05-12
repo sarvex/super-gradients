@@ -36,8 +36,9 @@ class IoULoss(AbstarctSegmentationStructureLoss):
         :param numerator: intersection between predictions and target.
         :param denominator: area of union between prediction pixels and target pixels.
         """
-        loss = 1.0 - ((numerator + self.smooth) / (denominator + self.eps + self.smooth))
-        return loss
+        return 1.0 - (
+            (numerator + self.smooth) / (denominator + self.eps + self.smooth)
+        )
 
 
 class BinaryIoULoss(IoULoss):

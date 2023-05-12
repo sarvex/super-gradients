@@ -102,23 +102,23 @@ def _iou(CIoU: bool, DIoU: bool, GIoU: bool, b1_x1, b1_x2, b1_y1, b1_y2, b2_x1, 
     if GIoU or DIoU or CIoU:
         cw = torch.max(b1_x2, b2_x2) - torch.min(b1_x1, b2_x1)  # convex (smallest enclosing box) width
         ch = torch.max(b1_y2, b2_y2) - torch.min(b1_y1, b2_y1)  # convex height
-        # Generalized IoU https://arxiv.org/pdf/1902.09630.pdf
-        if GIoU:
-            c_area = cw * ch + eps  # convex area
-            iou -= (c_area - union_area) / c_area  # GIoU
+    # Generalized IoU https://arxiv.org/pdf/1902.09630.pdf
+    if GIoU:
+        c_area = cw * ch + eps  # convex area
+        iou -= (c_area - union_area) / c_area  # GIoU
         # Distance or Complete IoU https://arxiv.org/abs/1911.08287v1
-        if DIoU or CIoU:
-            # convex diagonal squared
-            c2 = cw**2 + ch**2 + eps
-            # centerpoint distance squared
-            rho2 = ((b2_x1 + b2_x2 - b1_x1 - b1_x2) ** 2 + (b2_y1 + b2_y2 - b1_y1 - b1_y2) ** 2) / 4
-            if DIoU:
-                iou -= rho2 / c2  # DIoU
-            elif CIoU:  # https://github.com/Zzh-tju/DIoU-SSD-pytorch/blob/master/utils/box/box_utils.py#L47
-                v = (4 / math.pi**2) * torch.pow(torch.atan(w2 / h2) - torch.atan(w1 / h1), 2)
-                with torch.no_grad():
-                    alpha = v / ((1 + eps) - iou + v)
-                iou -= rho2 / c2 + v * alpha  # CIoU
+    if DIoU or CIoU:
+        # convex diagonal squared
+        c2 = cw**2 + ch**2 + eps
+        # centerpoint distance squared
+        rho2 = ((b2_x1 + b2_x2 - b1_x1 - b1_x2) ** 2 + (b2_y1 + b2_y2 - b1_y1 - b1_y2) ** 2) / 4
+        if DIoU:
+            iou -= rho2 / c2  # DIoU
+        else:
+            v = (4 / math.pi**2) * torch.pow(torch.atan(w2 / h2) - torch.atan(w1 / h1), 2)
+            with torch.no_grad():
+                alpha = v / ((1 + eps) - iou + v)
+            iou -= rho2 / c2 + v * alpha  # CIoU
     return iou
 
 
@@ -168,8 +168,7 @@ def calc_bbox_iou_matrix(pred: torch.Tensor):
     w1, h1 = b1_x2 - b1_x1, b1_y2 - b1_y1
     w2, h2 = b2_x2 - b2_x1, b2_y2 - b2_y1
     union_area = (w1 * h1 + 1e-16) + w2 * h2 - intersection_area
-    ious = intersection_area / union_area
-    return ious
+    return intersection_area / union_area
 
 
 def change_bbox_bounds_for_image_size(boxes, img_shape):
@@ -335,9 +334,7 @@ def matrix_non_max_suppression(
 
     pred[:, :, 4] *= decay
 
-    output = [pred[i, pred[i, :, 4] > conf_thres] for i in range(pred.shape[0])]
-
-    return output
+    return [pred[i, pred[i, :, 4] > conf_thres] for i in range(pred.shape[0])]
 
 
 class NMS_Type(str, Enum):
@@ -429,9 +426,8 @@ class DetectionVisualization:
 
         if checkpoint_dir is None:
             return image_np
-        else:
-            pathlib.Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
-            cv2.imwrite(os.path.join(checkpoint_dir, str(image_name) + ".jpg"), image_np)
+        pathlib.Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
+        cv2.imwrite(os.path.join(checkpoint_dir, f"{image_name}.jpg"), image_np)
 
     @staticmethod
     def _scaled_ccwh_to_xyxy(target_boxes: np.ndarray, h: int, w: int, image_scale: float) -> np.ndarray:
@@ -665,7 +661,7 @@ class DetectionCollateFN:
 
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor]:
         batch = default_collate(data)
-        ims, targets = batch[0:2]
+        ims, targets = batch[:2]
         return ims, self._format_targets(targets)
 
     def _format_targets(self, targets: torch.Tensor) -> torch.Tensor:
@@ -784,7 +780,7 @@ class CrowdDetectionCollateFN(DetectionCollateFN):
 
     def __call__(self, data) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor]]:
         batch = default_collate(data)
-        ims, targets, crowd_targets = batch[0:3]
+        ims, targets, crowd_targets = batch[:3]
         return ims, self._format_targets(targets), {"crowd_targets": self._format_targets(crowd_targets)}
 
 

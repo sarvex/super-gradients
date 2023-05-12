@@ -45,7 +45,9 @@ class StrictLoadEnumTest(unittest.TestCase):
         cls.experiment_name = "load_checkpoint_test"
 
         cls.checkpoint_diff_keys_name = "strict_load_test_diff_keys.pth"
-        cls.checkpoint_diff_keys_path = cls.temp_working_file_dir + "/" + cls.checkpoint_diff_keys_name
+        cls.checkpoint_diff_keys_path = (
+            f"{cls.temp_working_file_dir}/{cls.checkpoint_diff_keys_name}"
+        )
 
         # Setup the model
         cls.original_torch_model = Net()
@@ -74,28 +76,23 @@ class StrictLoadEnumTest(unittest.TestCase):
             shutil.rmtree(cls.temp_working_file_dir)
 
     @classmethod
-    def change_state_dict_keys(self, state_dict):
-        new_ckpt_dict = {}
-        for i, (ckpt_key, ckpt_val) in enumerate(state_dict.items()):
-            new_ckpt_dict[str(i)] = ckpt_val
-        return new_ckpt_dict
+    def change_state_dict_keys(cls, state_dict):
+        return {
+            str(i): ckpt_val
+            for i, (ckpt_key, ckpt_val) in enumerate(state_dict.items())
+        }
 
     def check_models_have_same_weights(self, model_1, model_2):
         model_1, model_2 = model_1.to("cpu"), model_2.to("cpu")
         models_differ = 0
         for key_item_1, key_item_2 in zip(model_1.state_dict().items(), model_2.state_dict().items()):
-            if torch.equal(key_item_1[1], key_item_2[1]):
-                pass
-            else:
+            if not torch.equal(key_item_1[1], key_item_2[1]):
                 models_differ += 1
                 if key_item_1[0] == key_item_2[0]:
                     print("Mismtach found at", key_item_1[0])
                 else:
                     raise Exception
-        if models_differ == 0:
-            return True
-        else:
-            return False
+        return models_differ == 0
 
     def test_strict_load_on(self):
         # Define Model

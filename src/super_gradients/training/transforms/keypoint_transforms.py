@@ -252,7 +252,11 @@ class KeypointsPadIfNeeded(KeypointTransform):
         """
         self.min_height = min_height
         self.min_width = min_width
-        self.image_pad_value = tuple(image_pad_value) if isinstance(image_pad_value, Iterable) else int(image_pad_value)
+        self.image_pad_value = (
+            tuple(image_pad_value)
+            if isinstance(image_pad_value, Iterable)
+            else image_pad_value
+        )
         self.mask_pad_value = mask_pad_value
 
     def __call__(self, image, mask, joints, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]):
@@ -299,7 +303,11 @@ class KeypointsRandomAffineTransform(KeypointTransform):
         self.min_scale = min_scale
         self.max_scale = max_scale
         self.max_translate = max_translate
-        self.image_pad_value = tuple(image_pad_value) if isinstance(image_pad_value, Iterable) else int(image_pad_value)
+        self.image_pad_value = (
+            tuple(image_pad_value)
+            if isinstance(image_pad_value, Iterable)
+            else image_pad_value
+        )
         self.mask_pad_value = mask_pad_value
         self.prob = prob
 
@@ -314,9 +322,7 @@ class KeypointsRandomAffineTransform(KeypointTransform):
         """
         height, width = img.shape[:2]
         center = (width / 2 + dx * width, height / 2 + dy * height)
-        matrix = cv2.getRotationMatrix2D(center, angle, scale)
-
-        return matrix
+        return cv2.getRotationMatrix2D(center, angle, scale)
 
     def __call__(self, image: np.ndarray, mask: np.ndarray, joints: np.ndarray, areas: Optional[np.ndarray], bboxes: Optional[np.ndarray]):
         """

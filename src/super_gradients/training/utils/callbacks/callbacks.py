@@ -79,7 +79,9 @@ class ModelConversionCheckCallback(PhaseCallback):
 
         x = torch.randn(self.model_meta_data.primary_batch_size, *self.model_meta_data.input_dimensions, requires_grad=False)
 
-        tmp_model_path = os.path.join(context.ckpt_dir, self.model_meta_data.name + "_tmp.onnx")
+        tmp_model_path = os.path.join(
+            context.ckpt_dir, f"{self.model_meta_data.name}_tmp.onnx"
+        )
 
         with torch.no_grad():
             torch_out = model(x)
@@ -106,7 +108,7 @@ class ModelConversionCheckCallback(PhaseCallback):
         ort_outs = ort_session.run(None, ort_inputs)
 
         # TODO: Ideally we don't want to check this but have the certainty of just calling torch_out.cpu()
-        if isinstance(torch_out, List) or isinstance(torch_out, tuple):
+        if isinstance(torch_out, (List, tuple)):
             torch_out = torch_out[0]
         # compare ONNX Runtime and PyTorch results
         np.testing.assert_allclose(torch_out.cpu().numpy(), ort_outs[0], rtol=self.rtol, atol=self.atol)
@@ -195,8 +197,9 @@ class DeciLabUploadCallback(PhaseCallback):
 
             optimized_model_name = f"{model_name}_1_1"
             logger.info("We'll wait for the scheduled optimization to finish. Please don't close this window")
-            success = self.get_optimization_status(optimized_model_name=optimized_model_name)
-            if success:
+            if success := self.get_optimization_status(
+                optimized_model_name=optimized_model_name
+            ):
                 logger.info("Successfully finished your model optimization. Visit https://console.deci.ai for details")
             else:
                 DeciLabUploadCallback.log_optimization_failed()
@@ -508,7 +511,7 @@ class IllegalLRSchedulerMetric(Exception):
     """
 
     def __init__(self, metric_name: str, metrics_dict: dict):
-        self.message = "Illegal metric name: " + metric_name + ". Expected one of metics_dics keys: " + str(metrics_dict.keys())
+        self.message = f"Illegal metric name: {metric_name}. Expected one of metics_dics keys: {str(metrics_dict.keys())}"
         super().__init__(self.message)
 
 
@@ -540,7 +543,7 @@ class LRSchedulerCallback(PhaseCallback):
                 raise IllegalLRSchedulerMetric(self.metric_name, context.metrics_dict)
 
     def __repr__(self):
-        return "LRSchedulerCallback: " + repr(self.scheduler)
+        return f"LRSchedulerCallback: {repr(self.scheduler)}"
 
 
 @register_callback(Callbacks.METRICS_UPDATE)
@@ -614,7 +617,7 @@ class DetectionVisualizationCallback(PhaseCallback):
             batch_imgs = DetectionVisualization.visualize_batch(context.inputs, preds, context.target, self.batch_idx, self.classes)
             batch_imgs = [cv2.cvtColor(image, cv2.COLOR_BGR2RGB) for image in batch_imgs]
             batch_imgs = np.stack(batch_imgs)
-            tag = "batch_" + str(self.batch_idx) + "_images"
+            tag = f"batch_{str(self.batch_idx)}_images"
             context.sg_logger.add_images(tag=tag, images=batch_imgs[: self.last_img_idx_in_batch], global_step=context.epoch, data_format="NHWC")
 
 
@@ -643,7 +646,7 @@ class BinarySegmentationVisualizationCallback(PhaseCallback):
             batch_imgs = BinarySegmentationVisualization.visualize_batch(context.inputs, preds, context.target, self.batch_idx)
             batch_imgs = [cv2.cvtColor(image, cv2.COLOR_BGR2RGB) for image in batch_imgs]
             batch_imgs = np.stack(batch_imgs)
-            tag = "batch_" + str(self.batch_idx) + "_images"
+            tag = f"batch_{str(self.batch_idx)}_images"
             context.sg_logger.add_images(tag=tag, images=batch_imgs[: self.last_img_idx_in_batch], global_step=context.epoch, data_format="NHWC")
 
 

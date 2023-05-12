@@ -17,14 +17,14 @@ try:
     from dagshub.upload import Repo
 
     _import_dagshub_error = None
-except (ModuleNotFoundError, ImportError, NameError) as dagshub_import_err:
+except (ImportError, NameError) as dagshub_import_err:
     _import_dagshub_error = dagshub_import_err
 
 try:
     import mlflow
 
     _import_mlflow_error = None
-except (ModuleNotFoundError, ImportError, NameError) as mlflow_import_err:
+except (ImportError, NameError) as mlflow_import_err:
     _import_mlflow_error = mlflow_import_err
 
 
@@ -99,8 +99,7 @@ class DagsHubSGLogger(BaseSGLogger):
         if dagshub_repository:
             self.repo_name, self.repo_owner = self.splitter(dagshub_repository)
 
-        dagshub_auth = os.getenv("DAGSHUB_USER_TOKEN")
-        if dagshub_auth:
+        if dagshub_auth := os.getenv("DAGSHUB_USER_TOKEN"):
             dagshub.auth.add_app_token(dagshub_auth)
 
         self._init_env_dependency()

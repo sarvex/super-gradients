@@ -133,19 +133,37 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
         self.images_folder = os.path.join(self.data_dir, self.images_dir)
         self.labels_folder = os.path.join(self.data_dir, self.labels_dir)
 
-        all_images_file_names = list(image_name for image_name in os.listdir(self.images_folder) if is_image(image_name))
-        all_labels_file_names = list(label_name for label_name in os.listdir(self.labels_folder) if label_name.endswith(".txt"))
+        all_images_file_names = [
+            image_name
+            for image_name in os.listdir(self.images_folder)
+            if is_image(image_name)
+        ]
+        all_labels_file_names = [
+            label_name
+            for label_name in os.listdir(self.labels_folder)
+            if label_name.endswith(".txt")
+        ]
 
         remove_file_extension = lambda file_name: os.path.splitext(os.path.basename(file_name))[0]
-        unique_image_file_base_names = set(remove_file_extension(image_file_name) for image_file_name in all_images_file_names)
-        unique_label_file_base_names = set(remove_file_extension(label_file_name) for label_file_name in all_labels_file_names)
+        unique_image_file_base_names = {
+            remove_file_extension(image_file_name)
+            for image_file_name in all_images_file_names
+        }
+        unique_label_file_base_names = {
+            remove_file_extension(label_file_name)
+            for label_file_name in all_labels_file_names
+        }
 
-        images_not_in_labels = unique_image_file_base_names - unique_label_file_base_names
-        if images_not_in_labels:
+        if (
+            images_not_in_labels := unique_image_file_base_names
+            - unique_label_file_base_names
+        ):
             logger.warning(f"{len(images_not_in_labels)} images are note associated to any label file")
 
-        labels_not_in_images = unique_label_file_base_names - unique_image_file_base_names
-        if labels_not_in_images:
+        if (
+            labels_not_in_images := unique_label_file_base_names
+            - unique_image_file_base_names
+        ):
             logger.warning(f"{len(labels_not_in_images)} label files are not associated to any image.")
 
         # Only keep names that are in both the images and the labels
@@ -163,7 +181,7 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
             base_name = remove_file_extension(image_full_name)
             if base_name in valid_base_names:
                 self.images_file_names.append(image_full_name)
-                self.labels_file_names.append(base_name + ".txt")
+                self.labels_file_names.append(f"{base_name}.txt")
         return len(self.images_file_names)
 
     def _load_annotation(self, sample_id: int) -> dict:
@@ -199,7 +217,7 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
         else:
             resized_img_shape = image_shape
 
-        annotation = {
+        return {
             "target": target,
             "initial_img_shape": image_shape,
             "resized_img_shape": resized_img_shape,
@@ -207,7 +225,6 @@ class YoloDarknetFormatDetectionDataset(DetectionDataset):
             "id": np.array([sample_id]),
             "n_invalid_labels": len(invalid_labels),
         }
-        return annotation
 
     @staticmethod
     def _parse_yolo_label_file(label_file_path: str, ignore_invalid_labels: bool = True, show_warnings: bool = True) -> Tuple[np.ndarray, List[str]]:

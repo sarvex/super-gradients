@@ -5,7 +5,7 @@ class KDModelException(Exception):
     """
 
     def __init__(self, desc: str):
-        self.message = "KDTrainer: " + desc
+        self.message = f"KDTrainer: {desc}"
         super().__init__(self.message)
 
 
@@ -23,7 +23,7 @@ class UnsupportedKDArchitectureException(KDModelException):
     """
 
     def __init__(self, architecture: str):
-        super().__init__("Unsupported KD architecture: " + str(architecture))
+        super().__init__(f"Unsupported KD architecture: {architecture}")
 
 
 class InconsistentParamsException(KDModelException):
@@ -55,7 +55,7 @@ class UnsupportedKDModelArgException(KDModelException):
     """
 
     def __init__(self, param_name: str, dict_name: str):
-        super().__init__(param_name + " in " + dict_name + " not supported for KD models.")
+        super().__init__(f"{param_name} in {dict_name} not supported for KD models.")
 
 
 class TeacherKnowledgeException(KDModelException):

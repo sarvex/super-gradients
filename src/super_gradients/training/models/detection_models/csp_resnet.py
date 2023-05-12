@@ -41,10 +41,7 @@ class CSPResNetBasicBlock(nn.Module):
     def forward(self, x):
         y = self.conv1(x)
         y = self.conv2(y)
-        if self.use_residual_connection:
-            return x + y
-        else:
-            return y
+        return x + y if self.use_residual_connection else y
 
 
 class CSPResStage(nn.Module):
@@ -91,11 +88,7 @@ class CSPResStage(nn.Module):
                 for _ in range(num_blocks)
             ]
         )
-        if use_attention:
-            self.attn = EffectiveSEBlock(mid_channels)
-        else:
-            self.attn = nn.Identity()
-
+        self.attn = EffectiveSEBlock(mid_channels) if use_attention else nn.Identity()
         self.conv3 = ConvBNAct(mid_channels, out_channels, kernel_size=1, stride=1, padding=0, activation_type=activation_type, bias=False)
 
     def forward(self, x):

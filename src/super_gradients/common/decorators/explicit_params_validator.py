@@ -63,21 +63,18 @@ class _ExplicitParamsValidator:
         :param value:
         :return:
         """
-        if self.validation_type == "NoneOrEmpty":
-            if not value:
-                raise ValueError("Input param: " + str(input_param) + " is Empty")
+        if self.validation_type == "NoneOrEmpty" and not value:
+            raise ValueError(f"Input param: {str(input_param)} is Empty")
 
         if value is None:
-            raise ValueError("Input param: " + str(input_param) + " is None")
+            raise ValueError(f"Input param: {str(input_param)} is None")
 
 
 # WRAPS THE RETRY DECORATOR CLASS TO ENABLE CALLING WITHOUT PARAMS
 def explicit_params_validation(function: Callable = None, validation_type: str = "None"):
     if function is not None:
         return _ExplicitParamsValidator(function=function)
-    else:
+    def wrapper(function):
+        return _ExplicitParamsValidator(function=function, validation_type=validation_type)
 
-        def wrapper(function):
-            return _ExplicitParamsValidator(function=function, validation_type=validation_type)
-
-        return wrapper
+    return wrapper

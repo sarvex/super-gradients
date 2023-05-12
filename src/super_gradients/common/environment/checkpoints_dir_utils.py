@@ -23,7 +23,7 @@ def _get_project_root_path() -> Optional[str]:
 
 def _parse_project_root_path(path: str) -> Optional[str]:
     """Extract the path of first project that includes this path (recursively look into parent folders). Return None if no project found."""
-    if path in ("", "/"):
+    if path in {"", "/"}:
         return None
     is_project_root_path = any(os.path.exists(os.path.join(path, file)) for file in (".git", "requirements.txt", ".env", "venv", "setup.py"))
     return path if is_project_root_path else _parse_project_root_path(path=os.path.dirname(path))
@@ -76,7 +76,6 @@ def get_ckpt_local_path(source_ckpt_folder_name: str, experiment_name: str, ckpt
     """
     if external_checkpoint_path:
         return external_checkpoint_path
-    else:
-        checkpoints_folder_name = source_ckpt_folder_name or experiment_name
-        checkpoints_dir_path = get_checkpoints_dir_path(checkpoints_folder_name)
-        return os.path.join(checkpoints_dir_path, ckpt_name)
+    checkpoints_folder_name = source_ckpt_folder_name or experiment_name
+    checkpoints_dir_path = get_checkpoints_dir_path(checkpoints_folder_name)
+    return os.path.join(checkpoints_dir_path, ckpt_name)

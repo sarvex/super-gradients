@@ -88,11 +88,7 @@ class RepVGGBlock(nn.Module):
         if not self.build_residual_branches:
             return self.nonlinearity(self.se(self.rbr_reparam(inputs)))
 
-        if self.no_conv_branch is None:
-            id_out = 0
-        else:
-            id_out = self.no_conv_branch(inputs)
-
+        id_out = 0 if self.no_conv_branch is None else self.no_conv_branch(inputs)
         return self.nonlinearity(self.se(self.branch_3x3(inputs) + self.alpha * self.branch_1x1(inputs) + id_out))
 
     def _get_equivalent_kernel_bias(self):

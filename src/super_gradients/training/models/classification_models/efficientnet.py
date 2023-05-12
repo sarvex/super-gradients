@@ -96,8 +96,7 @@ def drop_connect(inputs: torch.Tensor, p: float, training: bool) -> torch.Tensor
     random_tensor += torch.rand([batch_size, 1, 1, 1], dtype=inputs.dtype, device=inputs.device)
     binary_tensor = torch.floor(random_tensor)
 
-    output = inputs / keep_prob * binary_tensor
-    return output
+    return inputs / keep_prob * binary_tensor
 
 
 def calculate_output_image_size(input_image_size: Union[int, Tuple, List], stride: Union[int, Tuple, List]) -> Optional[List[int]]:
@@ -264,12 +263,12 @@ class BlockDecoder(object):
             "r%d" % block.num_repeat,
             "k%d" % block.kernel_size,
             "s%d%d" % (block.strides[0], block.strides[1]),
-            "e%s" % block.expand_ratio,
+            f"e{block.expand_ratio}",
             "i%d" % block.input_filters,
             "o%d" % block.output_filters,
         ]
         if 0 < block.se_ratio <= 1:
-            args.append("se%s" % block.se_ratio)
+            args.append(f"se{block.se_ratio}")
         if block.id_skip is False:
             args.append("noskip")
         return "_".join(args)
@@ -282,10 +281,10 @@ class BlockDecoder(object):
         :return blocks_args:    List of BlockArgs namedtuples of block args.
         """
         assert isinstance(string_list, list)
-        blocks_args = []
-        for block_string in string_list:
-            blocks_args.append(BlockDecoder._decode_block_string(block_string))
-        return blocks_args
+        return [
+            BlockDecoder._decode_block_string(block_string)
+            for block_string in string_list
+        ]
 
     @staticmethod
     def encode(blocks_args: List):
@@ -294,10 +293,7 @@ class BlockDecoder(object):
         :param blocks_args: A list of BlockArgs namedtuples of block args. (list[namedtuples])
         :return: block_strings: A list of strings, each string is a notation of block.
         """
-        block_strings = []
-        for block in blocks_args:
-            block_strings.append(BlockDecoder._encode_block_string(block))
-        return block_strings
+        return [BlockDecoder._encode_block_string(block) for block in blocks_args]
 
 
 class MBConvBlock(nn.Module):

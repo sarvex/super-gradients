@@ -50,8 +50,9 @@ class ConcatenatedTensorFormatConverter:
                 f"equal to {self.input_length} as defined by input format."
             )
         tensor = tensor[:, self.permutation_indexes]
-        tensor = apply_on_bboxes(fn=self._convert_bbox, tensor=tensor, tensor_format=self.output_format)
-        return tensor
+        return apply_on_bboxes(
+            fn=self._convert_bbox, tensor=tensor, tensor_format=self.output_format
+        )
 
     def _convert_bbox(self, bboxes: Union[Tensor, np.ndarray]) -> Union[Tensor, np.ndarray]:
         return convert_bboxes(

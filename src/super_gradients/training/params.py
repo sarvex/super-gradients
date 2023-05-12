@@ -96,7 +96,7 @@ class TrainingParams(HpmStruct):
         default_training_params = deepcopy(DEFAULT_TRAINING_PARAMS)
         super().__init__(**default_training_params)
         self.set_schema(TRAINING_PARAM_SCHEMA)
-        if len(entries) > 0:
+        if entries:
             self.override(**entries)
 
     def override(self, **entries):

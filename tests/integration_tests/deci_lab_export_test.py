@@ -66,7 +66,7 @@ class DeciLabUploadTest(unittest.TestCase):
 
         # FIXME: MISUSE OF DECI_PLATFROM CALLBACK:
         #  https://github.com/Deci-AI/deci_trainer/pull/106/files/2ed12b78adc9886faabad9d952969ff5479e9237#r708092979
-        new_model_from_repo_name = model_meta_data.name + "_1_1"
+        new_model_from_repo_name = f"{model_meta_data.name}_1_1"
 
         your_model_from_repo = deci_lab_callback.platform_client.get_model_by_name(name=new_model_from_repo_name).data
         deci_lab_callback.platform_client.delete_model(your_model_from_repo.model_id)

@@ -117,7 +117,6 @@ class ConfigInspectTest(unittest.TestCase):
                 "encoder.layers.1.blocks",
                 "encoder.layers.2",
                 "encoder.layers.2.blocks",
-                "encoder.layers.2.blocks",
             },
         )
 
@@ -164,7 +163,6 @@ class ConfigInspectTest(unittest.TestCase):
                 "encoder.layers.1",
                 "encoder.layers.1.blocks",
                 "encoder.layers.2",
-                "encoder.layers.2.blocks",
                 "encoder.layers.2.blocks",
             },
         )
@@ -213,14 +211,16 @@ class ConfigInspectTest(unittest.TestCase):
                 "encoder.layers.1.blocks",
                 "encoder.layers.2",
                 "encoder.layers.2.blocks",
-                "encoder.layers.2.blocks",
             },
         )
 
     def get_all_arch_params_configs(self):
         config_path = pkg_resources.resource_filename("super_gradients.recipes", "arch_params")
-        configs = [path.replace(".yaml", "") for path in sorted(os.listdir(config_path)) if path.endswith(".yaml")]
-        return configs
+        return [
+            path.replace(".yaml", "")
+            for path in sorted(os.listdir(config_path))
+            if path.endswith(".yaml")
+        ]
 
     def test_resnet18_cifar_arch_params(self):
         arch_params = get_arch_params("resnet18_cifar_arch_params")
@@ -248,18 +248,14 @@ class ConfigInspectTest(unittest.TestCase):
                     # This instantiation method is not supported as unpacking arch_params would cause root params to be considered "used"
                     # net = architecture_cls(**arch_params.to_dict(include_schema=False))
                     self.skipTest("Skipping test since model class is not subclass of SgModule")
-                else:
-                    # Most of the SG models work with a single params names "arch_params" of type HpmStruct, but a few take **kwargs instead
-                    if "arch_params" not in get_callable_param_names(architecture_cls):
-                        self.skipTest("Skipping test since model c'tor does not receive arch_params argument")
-                        # This instantiation method is not supported as unpacking arch_params would cause root params to be considered "used"
-                        # net = architecture_cls(**arch_params.to_dict(include_schema=False))
-                        pass
-                    else:
-                        try:
-                            _ = architecture_cls(arch_params=arch_params)
-                        except Exception as e:
-                            self.skipTest(f"Skipping test since model cannot be instantiated at all {e}")
+                elif "arch_params" in get_callable_param_names(architecture_cls):
+                    try:
+                        _ = architecture_cls(arch_params=arch_params)
+                    except Exception as e:
+                        self.skipTest(f"Skipping test since model cannot be instantiated at all {e}")
 
-                        with raise_if_unused_params(arch_params) as tracked_arch_params:
-                            _ = architecture_cls(arch_params=tracked_arch_params)
+                    with raise_if_unused_params(arch_params) as tracked_arch_params:
+                        _ = architecture_cls(arch_params=tracked_arch_params)
+
+                else:
+                    self.skipTest("Skipping test since model c'tor does not receive arch_params argument")

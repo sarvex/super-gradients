@@ -9,8 +9,7 @@ logger = get_logger(__name__)
 
 def crash_tip_handler():
     """Display a crash tip if an error was raised"""
-    crash_tip_message = ExceptionInfo.get_crash_tip_message()
-    if crash_tip_message:
+    if crash_tip_message := ExceptionInfo.get_crash_tip_message():
         print(crash_tip_message)
 
 

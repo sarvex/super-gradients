@@ -171,11 +171,7 @@ class SegRandomRescale:
         Check the scale values are valid. if order is wrong, flip the order and return the right scale values.
         """
         if not isinstance(self.scales, collections.abc.Iterable):
-            if self.scales <= 1:
-                self.scales = (self.scales, 1)
-            else:
-                self.scales = (1, self.scales)
-
+            self.scales = (self.scales, 1) if self.scales <= 1 else (1, self.scales)
         if self.scales[0] < 0 or self.scales[1] < 0:
             raise ValueError(f"SegRandomRescale scale values must be positive numbers, found: {self.scales}")
         if self.scales[0] > self.scales[1]:
@@ -1048,7 +1044,7 @@ class DetectionTargetsFormatTransform(DetectionTransform):
             self._setup_input_dim_related_params(input_dim=sample["image"].shape[1:])
 
         sample["target"] = self.apply_on_targets(sample["target"])
-        if "crowd_target" in sample.keys():
+        if "crowd_target" in sample:
             sample["crowd_target"] = self.apply_on_targets(sample["crowd_target"])
         return sample
 
@@ -1151,9 +1147,7 @@ def apply_affine_to_bboxes(targets, targets_seg, target_size, M):
     # if any is_not_nan in axis = 1
     seg_is_present_mask = np.logical_or.reduce(~np.isnan(targets_seg), axis=1)
     num_gts_masks = seg_is_present_mask.sum()
-    num_gts_boxes = num_gts - num_gts_masks
-
-    if num_gts_boxes:
+    if num_gts_boxes := num_gts - num_gts_masks:
         # warp corner points
         corner_points = np.ones((num_gts_boxes * 4, 3))
         # x1y1, x2y2, x1y2, x2y1

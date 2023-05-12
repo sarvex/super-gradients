@@ -25,16 +25,13 @@ class DatasetDataInterface:
         :return:
         """
 
-        dataset_full_path = local_dir
         bucket = remote_file.split("/")[2]
-        file_path = "/".join(remote_file.split("/")[3:])
         if self.data_connection_source == "s3":
             self.s3_connector = S3Connector(self.env, bucket)
 
-            # DELETE THE LOCAL VERSION ON THE MACHINE
+            dataset_full_path = local_dir
             if os.path.exists(dataset_full_path):
                 if overwrite_local_dataset:
-
                     filelist = os.listdir(local_dir)
                     for f in filelist:
                         os.remove(os.path.join(local_dir, f))
@@ -43,9 +40,10 @@ class DatasetDataInterface:
             if not os.path.exists(local_dir):
                 os.mkdir(local_dir)
 
+            file_path = "/".join(remote_file.split("/")[3:])
             local_file = self.s3_connector.download_file_by_path(file_path, local_dir)
-            with zipfile.ZipFile(local_dir + "/" + local_file, "r") as zip_ref:
-                zip_ref.extractall(local_dir + "/")
-            os.remove(local_dir + "/" + local_file)
+            with zipfile.ZipFile(f"{local_dir}/{local_file}", "r") as zip_ref:
+                zip_ref.extractall(f"{local_dir}/")
+            os.remove(f"{local_dir}/{local_file}")
 
         return local_dir

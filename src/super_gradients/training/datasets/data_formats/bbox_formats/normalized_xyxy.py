@@ -29,15 +29,14 @@ def normalized_xyxy_to_xyxy(bboxes, image_shape: Tuple[int, int]):
     if torch.jit.is_scripting():
         scale = torch.tensor([cols, rows, cols, rows], dtype=bboxes.dtype, device=bboxes.device)
         scale = scale.reshape([1] * (len(bboxes.size()) - 1) + [4])
+    elif torch.is_tensor(bboxes):
+        scale = torch.tensor([cols, rows, cols, rows], dtype=bboxes.dtype, device=bboxes.device)
+        scale = scale.reshape([1] * (len(bboxes.size()) - 1) + [4])
+    elif isinstance(bboxes, np.ndarray):
+        scale = np.array([cols, rows, cols, rows], dtype=bboxes.dtype)
+        scale = scale.reshape([1] * (len(bboxes.shape) - 1) + [4])
     else:
-        if torch.is_tensor(bboxes):
-            scale = torch.tensor([cols, rows, cols, rows], dtype=bboxes.dtype, device=bboxes.device)
-            scale = scale.reshape([1] * (len(bboxes.size()) - 1) + [4])
-        elif isinstance(bboxes, np.ndarray):
-            scale = np.array([cols, rows, cols, rows], dtype=bboxes.dtype)
-            scale = scale.reshape([1] * (len(bboxes.shape) - 1) + [4])
-        else:
-            raise RuntimeError(f"Only Torch tensor or Numpy array is supported. Received bboxes of type {str(type(bboxes))}")
+        raise RuntimeError(f"Only Torch tensor or Numpy array is supported. Received bboxes of type {str(type(bboxes))}")
 
     return bboxes * scale
 
@@ -53,14 +52,13 @@ def xyxy_to_normalized_xyxy(bboxes: Tensor, image_shape: Tuple[int, int]) -> Ten
     if torch.jit.is_scripting():
         scale = torch.tensor([cols, rows, cols, rows], dtype=bboxes.dtype, device=bboxes.device)
         scale = scale.reshape([1] * (len(bboxes.size()) - 1) + [4])
+    elif torch.is_tensor(bboxes):
+        scale = torch.tensor([cols, rows, cols, rows], dtype=bboxes.dtype, device=bboxes.device)
+        scale = scale.reshape([1] * (len(bboxes.size()) - 1) + [4])
+    elif isinstance(bboxes, np.ndarray):
+        scale = np.array([cols, rows, cols, rows], dtype=bboxes.dtype)
     else:
-        if torch.is_tensor(bboxes):
-            scale = torch.tensor([cols, rows, cols, rows], dtype=bboxes.dtype, device=bboxes.device)
-            scale = scale.reshape([1] * (len(bboxes.size()) - 1) + [4])
-        elif isinstance(bboxes, np.ndarray):
-            scale = np.array([cols, rows, cols, rows], dtype=bboxes.dtype)
-        else:
-            raise RuntimeError(f"Only Torch tensor or Numpy array is supported. Received bboxes of type {str(type(bboxes))}")
+        raise RuntimeError(f"Only Torch tensor or Numpy array is supported. Received bboxes of type {str(type(bboxes))}")
     return bboxes / scale
 
 
@@ -114,13 +112,7 @@ class NormalizedXYXYCoordinateFormat(BoundingBoxFormat):
         self.normalized = True
 
     def get_to_xyxy(self, inplace: bool):
-        if inplace:
-            return normalized_xyxy_to_xyxy_inplace
-        else:
-            return normalized_xyxy_to_xyxy
+        return normalized_xyxy_to_xyxy_inplace if inplace else normalized_xyxy_to_xyxy
 
     def get_from_xyxy(self, inplace: bool):
-        if inplace:
-            return xyxy_to_normalized_xyxy_inplace
-        else:
-            return xyxy_to_normalized_xyxy
+        return xyxy_to_normalized_xyxy_inplace if inplace else xyxy_to_normalized_xyxy

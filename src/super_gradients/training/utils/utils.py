@@ -27,7 +27,7 @@ logger = get_logger(__name__)
 
 def empty_list():
     """Instantiate an empty list. This is a workaround to generate a list with a function call in hydra, instead of the "[]"."""
-    return list()
+    return []
 
 
 def convert_to_tensor(array, dtype=None, device=None):
@@ -109,16 +109,13 @@ class Timer:
             self.starter = time.time()
 
     def stop(self):
-        if self.on_gpu:
-            self.ender.record()
-            torch.cuda.synchronize()
-            timer = self.starter.elapsed_time(self.ender)
-        else:
+        if not self.on_gpu:
             # Time measures in seconds -> convert to milliseconds
-            timer = (time.time() - self.starter) * 1000
+            return (time.time() - self.starter) * 1000
 
-        # Return time in milliseconds
-        return timer
+        self.ender.record()
+        torch.cuda.synchronize()
+        return self.starter.elapsed_time(self.ender)
 
 
 class AverageMeter:
@@ -346,10 +343,10 @@ def get_filename_suffix_by_framework(framework: str):
         "TFLITE": ".tflite",
     }
 
-    if framework.upper() not in frameworks_dict.keys():
+    if framework.upper() in frameworks_dict:
+        return frameworks_dict[framework.upper()]
+    else:
         raise ValueError(f"Unsupported framework: {framework}")
-
-    return frameworks_dict[framework.upper()]
 
 
 def check_models_have_same_weights(model_1: torch.nn.Module, model_2: torch.nn.Module):
@@ -363,16 +360,11 @@ def check_models_have_same_weights(model_1: torch.nn.Module, model_2: torch.nn.M
     model_1, model_2 = model_1.to("cpu"), model_2.to("cpu")
     models_differ = 0
     for key_item_1, key_item_2 in zip(model_1.state_dict().items(), model_2.state_dict().items()):
-        if torch.equal(key_item_1[1], key_item_2[1]):
-            pass
-        else:
+        if not torch.equal(key_item_1[1], key_item_2[1]):
             models_differ += 1
             if key_item_1[0] == key_item_2[0]:
                 print(f"Layer names match but layers have different weights for layers: {key_item_1[0]}")
-    if models_differ == 0:
-        return True
-    else:
-        return False
+    return models_differ == 0
 
 
 def recursive_override(base: dict, extension: dict):
@@ -445,7 +437,9 @@ def download_and_untar_from_url(urls: List[str], dir: Union[str, Path] = "."):
             torch.hub.download_url_to_file(url, str(filepath), progress=True)
 
         modes = {".tar.gz": "r:gz", ".tar": "r:"}
-        assert filepath.suffix in modes.keys(), f"{filepath} has {filepath.suffix} suffix which is not supported"
+        assert (
+            filepath.suffix in modes
+        ), f"{filepath} has {filepath.suffix} suffix which is not supported"
 
         logger.info(f"Extracting to {dir}...")
         with tarfile.open(filepath, mode=modes[filepath.suffix]) as f:
@@ -472,9 +466,9 @@ def check_img_size_divisibility(img_size: int, stride: int = 32) -> Tuple[bool, 
         Note: Suggestions are the two closest numbers to img_size that *are* divisible by stride.
         For example if img_size=321, stride=32, it will return (False,(352, 320)).
     """
-    new_size = make_divisible(img_size, int(stride))
+    new_size = make_divisible(img_size, stride)
     if new_size != img_size:
-        return False, (new_size, make_divisible(img_size, int(stride), ceil=False))
+        return False, (new_size, make_divisible(img_size, stride, ceil=False))
     else:
         return True, None
 
@@ -502,13 +496,10 @@ def exif_size(image: Image) -> Tuple[int, int]:
         if exif_data is not None:
             rotation = dict(exif_data.items())[orientation_key]
             # ROTATION 270
-            if rotation == 6:
-                image_size = (image_size[1], image_size[0])
-            # ROTATION 90
-            elif rotation == 8:
+            if rotation in [6, 8]:
                 image_size = (image_size[1], image_size[0])
     except Exception as ex:
-        print("Caught Exception trying to rotate: " + str(image) + str(ex))
+        print(f"Caught Exception trying to rotate: {str(image)}{str(ex)}")
     width, height = image_size
     return height, width
 
@@ -536,8 +527,7 @@ def generate_batch(iterable: Iterable, batch_size: int) -> Iterable:
     """Batch data into tuples of length n. The last batch may be shorter."""
     it = iter(iterable)
     while True:
-        batch = tuple(islice(it, batch_size))
-        if batch:
+        if batch := tuple(islice(it, batch_size)):
             yield batch
         else:
             return

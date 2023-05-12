@@ -88,7 +88,13 @@ def save_gif(output_path: str, frames: List[np.ndarray], fps: int) -> None:
 
     frames_pil = [PIL.Image.fromarray(frame) for frame in frames]
 
-    frames_pil[0].save(output_path, save_all=True, append_images=frames_pil[1:], duration=int(1000 / fps), loop=0)
+    frames_pil[0].save(
+        output_path,
+        save_all=True,
+        append_images=frames_pil[1:],
+        duration=1000 // fps,
+        loop=0,
+    )
 
 
 def save_mp4(output_path: str, frames: List[np.ndarray], fps: int) -> None:
@@ -131,7 +137,9 @@ def _validate_frames(frames: List[np.ndarray]) -> Tuple[float, float]:
             f"Please make sure that all the frames have the same shape."
         )
 
-    if set(frame.ndim for frame in frames) != {3} or set(frame.shape[-1] for frame in frames) != {3}:
+    if {frame.ndim for frame in frames} != {3} or {
+        frame.shape[-1] for frame in frames
+    } != {3}:
         raise RuntimeError("Your frames must include 3 channels.")
 
     return max_height, max_width

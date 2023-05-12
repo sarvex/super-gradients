@@ -48,8 +48,7 @@ class DEKRTargetsGenerator(KeypointsTargetsGenerator):
         self.offset_radius = offset_radius
 
     def get_heat_val(self, sigma: float, x, y, x0, y0) -> float:
-        g = np.exp(-((x - x0) ** 2 + (y - y0) ** 2) / (2 * sigma**2))
-        return g
+        return np.exp(-((x - x0) ** 2 + (y - y0) ** 2) / (2 * sigma**2))
 
     def compute_area(self, joints: np.ndarray) -> np.ndarray:
         """
@@ -93,7 +92,7 @@ class DEKRTargetsGenerator(KeypointsTargetsGenerator):
                 raise ValueError("No visible joints found in instance. ")
 
             keypoints_with_center = np.zeros((num_joints_with_center, 3))
-            keypoints_with_center[0:num_joints] = keypoints
+            keypoints_with_center[:num_joints] = keypoints
             keypoints_with_center[-1, :2] = joints_sum / num_vis_joints
             keypoints_with_center[-1, 2] = 1
 
@@ -155,13 +154,9 @@ class DEKRTargetsGenerator(KeypointsTargetsGenerator):
         joints[:, :, 0] *= sx
         joints[:, :, 1] *= sy
 
-        for person_id, p in enumerate(joints):
+        for p in joints:
             for idx, pt in enumerate(p):
-                if idx < num_joints:  # Last joint index is object center
-                    sigma = self.sigma
-                else:
-                    sigma = self.center_sigma
-
+                sigma = self.sigma if idx < num_joints else self.center_sigma
                 if pt[2] > 0:
                     x, y = pt[0], pt[1]
                     if x < 0 or y < 0 or x >= output_cols or y >= output_rows:

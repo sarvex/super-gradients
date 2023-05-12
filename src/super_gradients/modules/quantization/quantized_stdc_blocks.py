@@ -14,7 +14,7 @@ try:
     from super_gradients.training.utils.quantization.selective_quantization_utils import register_quantized_module
 
     _imported_pytorch_quantization_failure = None
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
+except (ImportError, NameError) as import_err:
     _imported_pytorch_quantization_failure = import_err
 
 
@@ -29,21 +29,18 @@ class QuantSTDCBlock(SGQuantMixin, STDCBlock):
         )
         self.quant_list = nn.ModuleList()
 
-        for i in range(len(self.conv_list) - 1):
+        for _ in range(len(self.conv_list) - 1):
             self.quant_list.append(Residual())
 
     def forward(self, x):
-        out_list = []
         # run first conv
         x = self.conv_list[0](x)
-        out_list.append(self.skip_step1(x))
-
+        out_list = [self.skip_step1(x)]
         for conv, quant in zip(self.conv_list[1:], self.quant_list):
             x = conv(x)
             out_list.append(quant(x))
 
-        out = torch.cat(out_list, dim=1)
-        return out
+        return torch.cat(out_list, dim=1)
 
 
 @register_quantized_module(float_source=AttentionRefinementModule, action=QuantizedMetadata.ReplacementAction.REPLACE_AND_RECURE)
@@ -78,9 +75,7 @@ class QuantFeatureFusionModule(SGQuantMixin, FeatureFusionModule):
         feat = self.pw_conv(feat)
         atten = self.attention_block(feat)
 
-        feat_out = self.q_feat(feat) * self.q_atten(atten + 1)
-
-        return feat_out
+        return self.q_feat(feat) * self.q_atten(atten + 1)
 
 
 @register_quantized_module(float_source=ContextPath, action=QuantizedMetadata.ReplacementAction.REPLACE_AND_RECURE)

@@ -12,15 +12,13 @@ def get_logging_values(loss_loggings: AverageMeter, metrics: MetricCollection, c
 
     :return: tuple of the computed values
     """
-    if criterion is not None:
-        loss_loggingg_avg = loss_loggings.average
-        if not isinstance(loss_loggingg_avg, tuple):
-            loss_loggingg_avg = tuple([loss_loggingg_avg])
-        logging_vals = loss_loggingg_avg + get_metrics_results_tuple(metrics)
-    else:
-        logging_vals = get_metrics_results_tuple(metrics)
+    if criterion is None:
+        return get_metrics_results_tuple(metrics)
 
-    return logging_vals
+    loss_loggingg_avg = loss_loggings.average
+    if not isinstance(loss_loggingg_avg, tuple):
+        loss_loggingg_avg = (loss_loggingg_avg, )
+    return loss_loggingg_avg + get_metrics_results_tuple(metrics)
 
 
 def get_metrics_titles(metrics_collection: MetricCollection):
@@ -48,11 +46,11 @@ def get_metrics_results_tuple(metrics_collection: MetricCollection):
     @type metrics_collection
     :return: tuple of metrics values
     """
-    if metrics_collection is None:
-        results_tuple = ()
-    else:
-        results_tuple = tuple(flatten_metrics_dict(metrics_collection.compute()).values())
-    return results_tuple
+    return (
+        ()
+        if metrics_collection is None
+        else tuple(flatten_metrics_dict(metrics_collection.compute()).values())
+    )
 
 
 def flatten_metrics_dict(metrics_dict: dict):
@@ -85,8 +83,7 @@ def get_metrics_dict(metrics_tuple, metrics_collection, loss_logging_item_names)
     :return: dict
     """
     keys = loss_logging_item_names + get_metrics_titles(metrics_collection)
-    metrics_dict = dict(zip(keys, list(metrics_tuple)))
-    return metrics_dict
+    return dict(zip(keys, list(metrics_tuple)))
 
 
 def get_train_loop_description_dict(metrics_tuple, metrics_collection, loss_logging_item_names, **log_items):
@@ -100,7 +97,9 @@ def get_train_loop_description_dict(metrics_tuple, metrics_collection, loss_logg
     :param log_items additional logging items to be rendered.
     :return: dict
     """
-    log_items.update(get_metrics_dict(metrics_tuple, metrics_collection, loss_logging_item_names))
+    log_items |= get_metrics_dict(
+        metrics_tuple, metrics_collection, loss_logging_item_names
+    )
     for key, value in log_items.items():
         if isinstance(value, torch.Tensor):
             log_items[key] = value.detach().item()

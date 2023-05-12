@@ -161,8 +161,7 @@ class DBlock(nn.Module):
     def forward(self, x):
         x1 = self.shortcut(x)
         x2 = self.d_block_path(x)
-        out = self.relu(x1 + x2)
-        return out
+        return self.relu(x1 + x2)
 
     def __str__(self):
         return (
@@ -204,8 +203,11 @@ class RegSegDecoder(nn.Module):
 class RegSegHead(nn.Module):
     def __init__(self, in_channels: int, num_classes: int, head_config: dict):
         super().__init__()
-        layers = list()
-        layers.append(ConvBNReLU(in_channels, head_config["mid_channels"], 3, bias=False, padding=1))
+        layers = [
+            ConvBNReLU(
+                in_channels, head_config["mid_channels"], 3, bias=False, padding=1
+            )
+        ]
         if head_config["dropout"] > 0:
             layers.append(nn.Dropout(head_config["dropout"], inplace=False))
 
@@ -225,7 +227,7 @@ class RegSegBackbone(nn.Module):
     @staticmethod
     def _generate_stages(in_channels, backbone_stages):
         prev_out_channels = in_channels
-        backbone_channels = list()
+        backbone_channels = []
         stages = nn.ModuleList()
         for stage in backbone_stages:
             stage_blocks = nn.Sequential()
@@ -238,7 +240,7 @@ class RegSegBackbone(nn.Module):
         return stages, backbone_channels
 
     def forward(self, x):
-        outputs = list()
+        outputs = []
         x_in = x
         for stage in self.stages:
             x_out = stage(x_in)
@@ -276,11 +278,18 @@ class RegSeg(SgModule):
 
         multiply_lr_params, no_multiply_params = multiply_lr_params.items(), no_multiply_params.items()
 
-        param_groups = [
-            {"named_params": no_multiply_params, "lr": lr, "name": "no_multiply_params"},
-            {"named_params": multiply_lr_params, "lr": lr * multiply_head_lr, "name": "multiply_lr_params"},
+        return [
+            {
+                "named_params": no_multiply_params,
+                "lr": lr,
+                "name": "no_multiply_params",
+            },
+            {
+                "named_params": multiply_lr_params,
+                "lr": lr * multiply_head_lr,
+                "name": "multiply_lr_params",
+            },
         ]
-        return param_groups
 
     def update_param_groups(self, param_groups: list, lr: float, epoch: int, iter: int, training_params: HpmStruct, total_batch: int) -> list:
         multiply_head_lr = get_param(training_params, "multiply_head_lr", 1)

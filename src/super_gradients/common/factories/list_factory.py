@@ -9,10 +9,7 @@ class ListFactory(AbstractFactory):
 
     def get(self, conf_list: List):
         if isinstance(conf_list, Sequence):
-            all = []
-            for conf in conf_list:
-                all.append(self.factory.get(conf))
-            return all
+            return [self.factory.get(conf) for conf in conf_list]
         else:
             # FALLBACK - IN CASE LIST OF TYPE OR TYPE ARE BOTH EXPECTED
             return self.factory.get(conf_list)

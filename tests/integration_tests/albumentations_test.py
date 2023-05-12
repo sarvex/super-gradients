@@ -9,8 +9,7 @@ from albumentations import Compose, HorizontalFlip, InvertImg
 class AlbumentationsIntegrationTest(unittest.TestCase):
     def _apply_aug(self, img_no_aug):
         pipe = Compose(transforms=[HorizontalFlip(p=1.0), InvertImg(p=1.0)])
-        img_no_aug_transformed = pipe(image=np.array(img_no_aug))["image"]
-        return img_no_aug_transformed
+        return pipe(image=np.array(img_no_aug))["image"]
 
     def test_cifar10_albumentations_integration(self):
         ds_no_aug = Cifar10(root="./data/cifar10", train=True, download=True)

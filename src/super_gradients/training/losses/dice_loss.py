@@ -37,8 +37,10 @@ class DiceLoss(AbstarctSegmentationStructureLoss):
         :param numerator: intersection between predictions and target.
         :param denominator: total number of pixels of prediction and target.
         """
-        loss = 1.0 - ((2.0 * numerator + self.smooth) / (denominator + self.eps + self.smooth))
-        return loss
+        return 1.0 - (
+            (2.0 * numerator + self.smooth)
+            / (denominator + self.eps + self.smooth)
+        )
 
 
 class BinaryDiceLoss(DiceLoss):

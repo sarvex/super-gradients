@@ -9,7 +9,7 @@ try:
     from pycocotools.coco import COCO
     from pycocotools import mask as pycocotools_mask
 except ModuleNotFoundError as ex:
-    print("[WARNING]" + str(ex))
+    print(f"[WARNING]{str(ex)}")
 
 from super_gradients.common.object_names import Datasets
 from super_gradients.common.registry.registry import register_dataset
@@ -107,28 +107,29 @@ class CoCoSegmentationDataSet(SegmentationDataSet):
         """
         mask = np.zeros((h, w), dtype=np.uint8)
 
-        for i, instance in enumerate(target_coco_annotations):
-
+        for instance in target_coco_annotations:
             rle = pycocotools_mask.frPyObjects(instance["segmentation"], h, w)
             coco_segementation_mask = pycocotools_mask.decode(rle)
 
             if not self.dataset_classes_inclusion_tuples_list:
                 # NO CLASSES WERE SELECTED FROM COCO'S 91 CLASSES - ERROR
                 raise EmptyCoCoClassesSelectionException
-            else:
-                # FILTER OUT ALL OF THE MASKS OF INSTANCES THAT ARE NOT IN THE SUB-DATASET CLASSES
-                class_category = instance["category_id"]
+            # FILTER OUT ALL OF THE MASKS OF INSTANCES THAT ARE NOT IN THE SUB-DATASET CLASSES
+            class_category = instance["category_id"]
 
-                sub_classes_category_ids, _ = map(list, zip(*self.dataset_classes_inclusion_tuples_list))
-                if class_category not in sub_classes_category_ids:
-                    continue
+            sub_classes_category_ids, _ = map(list, zip(*self.dataset_classes_inclusion_tuples_list))
+            if class_category not in sub_classes_category_ids:
+                continue
 
-                class_index = sub_classes_category_ids.index(class_category)
-                if len(coco_segementation_mask.shape) < 3:
-                    mask[:, :] += (mask == 0) * (coco_segementation_mask * class_index)
-                else:
-                    mask[:, :] += (mask == 0) * (((np.sum(coco_segementation_mask, axis=2)) > 0) * class_index).astype(np.uint8)
-
+            class_index = sub_classes_category_ids.index(class_category)
+            mask[:, :] += (
+                (mask == 0) * (coco_segementation_mask * class_index)
+                if len(coco_segementation_mask.shape) < 3
+                else (mask == 0)
+                * (
+                    ((np.sum(coco_segementation_mask, axis=2)) > 0) * class_index
+                ).astype(np.uint8)
+            )
         return mask
 
     def _sub_dataset_creation(self, sub_dataset_image_ids_file_path) -> list:
@@ -154,7 +155,9 @@ class CoCoSegmentationDataSet(SegmentationDataSet):
                 if (mask > 0).sum() > 1000:
                     sub_dataset_image_ids.append(img_id)
 
-                tbar.set_description("Processed images: {}/{}, generated {} qualified images".format(i, len(all_coco_image_ids), len(sub_dataset_image_ids)))
+                tbar.set_description(
+                    f"Processed images: {i}/{len(all_coco_image_ids)}, generated {len(sub_dataset_image_ids)} qualified images"
+                )
         print("Number of images in sub-dataset: ", len(sub_dataset_image_ids))
         torch.save(sub_dataset_image_ids, sub_dataset_image_ids_file_path)
         return sub_dataset_image_ids

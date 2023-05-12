@@ -25,7 +25,7 @@ class SegmentationModule(SgModule, ABC):
         if use_aux is True, and self._use_aux_heads was already set to False a ValueError is raised, recreating
             aux and detail heads outside init method is not allowed, and the module should be recreated.
         """
-        if use_aux is True and self._use_aux_heads is False:
+        if use_aux and self._use_aux_heads is False:
             raise ValueError(
                 "Cant turn use_aux_heads from False to True. Try initiating the module again with"
                 " `use_aux_heads=True` or initiating the auxiliary heads modules manually."

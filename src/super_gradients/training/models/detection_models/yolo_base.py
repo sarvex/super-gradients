@@ -264,9 +264,9 @@ class YoloRegnetBackbone(AbstractYoloBackbone, AnyNetX):
         backbone_params.pop("spp_kernels", None)
         AnyNetX.__init__(self, **backbone_params)
 
-        # LAST ANYNETX STAGE -> STAGE + SPP IF SPP_KERNELS IS GIVEN
-        spp_kernels = get_param(arch_params.backbone_params, "spp_kernels", None)
-        if spp_kernels:
+        if spp_kernels := get_param(
+            arch_params.backbone_params, "spp_kernels", None
+        ):
             activation_type = nn.SiLU if arch_params.yolo_type == "yoloX" else nn.Hardswish
             self.net.stage_3 = self.add_spp_to_stage(self.net.stage_3, spp_kernels, activation_type=activation_type)
             self.initialize_weight()
@@ -400,7 +400,9 @@ class YoloBase(SgModule):
         # FIXME: REMOVE anchors ATTRIBUTE, WHICH HAS NO MEANING OTHER THAN COMPATIBILITY.
         self.arch_params.anchors = COCO_DETECTION_80_CLASSES_BBOX_ANCHORS
         self.arch_params.override(**arch_params.to_dict())
-        self.arch_params.skip_connections_dict = {k: v for k, v in self.arch_params.skip_connections_list}
+        self.arch_params.skip_connections_dict = dict(
+            self.arch_params.skip_connections_list
+        )
 
         self.num_classes = self.arch_params.num_classes
         # THE MODEL'S MODULES
@@ -462,13 +464,14 @@ class YoloBase(SgModule):
         iou = iou or self._default_nms_iou
         conf = conf or self._default_nms_conf
 
-        pipeline = DetectionPipeline(
+        return DetectionPipeline(
             model=self,
             image_processor=self._image_processor,
-            post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
+            post_prediction_callback=self.get_post_prediction_callback(
+                iou=iou, conf=conf
+            ),
             class_names=self._class_names,
         )
-        return pipeline
 
     def predict(self, images: ImageSource, iou: Optional[float] = None, conf: Optional[float] = None) -> ImagesDetectionPrediction:
         """Predict an image or a list of images.

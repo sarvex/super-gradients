@@ -20,9 +20,10 @@ class ShelfNetOHEMLoss(OhemCELoss):
         super().__init__(threshold=threshold, mining_percent=mining_percent, ignore_lb=ignore_lb)
 
     def forward(self, predictions_list: list, targets):
-        losses = []
-        for predictions in predictions_list:
-            losses.append(super().forward(predictions, targets))
+        losses = [
+            super().forward(predictions, targets)
+            for predictions in predictions_list
+        ]
         total_loss = sum(losses)
         losses.append(total_loss)
 

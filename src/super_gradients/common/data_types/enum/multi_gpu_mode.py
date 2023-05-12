@@ -23,7 +23,7 @@ class MultiGPUMode(str, Enum):
         """
         Return dictionary mapping from the mode name (in call string cases) to the enum value
         """
-        out_dict = dict()
+        out_dict = {}
         for mode in MultiGPUMode:
             out_dict[mode.value] = mode
             out_dict[mode.name] = mode

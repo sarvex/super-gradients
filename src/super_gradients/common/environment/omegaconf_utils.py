@@ -51,11 +51,7 @@ class RecipeShortcutsCallback(Callback):
 
     @staticmethod
     def _override_with_shortcut(shortcut_value, main_value):
-        if shortcut_value is not None:
-            value = shortcut_value
-        else:
-            value = main_value
-
+        value = shortcut_value if shortcut_value is not None else main_value
         return value, value
 
 

@@ -22,5 +22,4 @@ class DropPath(nn.Module):
         shape = (x.shape[0],) + (1,) * (x.ndim - 1)  # work with diff dim tensors, not just 2D ConvNets
         random_tensor = keep_prob + torch.rand(shape, dtype=x.dtype, device=x.device)
         random_tensor.floor_()  # binarize
-        output = x.div(keep_prob) * random_tensor
-        return output
+        return x.div(keep_prob) * random_tensor

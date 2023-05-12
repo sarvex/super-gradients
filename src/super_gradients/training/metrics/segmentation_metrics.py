@@ -184,8 +184,11 @@ class PixelAccuracy(Metric):
     def compute(self):
         _total_correct = self.total_correct.cpu().detach().numpy().astype("int64")
         _total_label = self.total_label.cpu().detach().numpy().astype("int64")
-        pix_acc = np.float64(1.0) * _total_correct / (np.spacing(1, dtype=np.float64) + _total_label)
-        return pix_acc
+        return (
+            np.float64(1.0)
+            * _total_correct
+            / (np.spacing(1, dtype=np.float64) + _total_label)
+        )
 
 
 @register_metric(Metrics.IOU)

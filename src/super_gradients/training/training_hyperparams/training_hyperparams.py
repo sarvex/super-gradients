@@ -20,7 +20,7 @@ def get(config_name, overriding_params: Dict = None) -> Dict:
      hyper parameters dictionary.
     """
     if overriding_params is None:
-        overriding_params = dict()
+        overriding_params = {}
 
     cfg = load_recipe(config_name=config_name)  # This loads the full recipe, not just training_hyperparams
     cfg = hydra.utils.instantiate(cfg)

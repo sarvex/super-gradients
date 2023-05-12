@@ -27,8 +27,8 @@ class DEKRLoss(nn.Module):
                              We use QFL in our recipe as it produces better results.
         """
         super().__init__()
-        self.heatmap_loss_factor = float(heatmap_loss_factor)
-        self.offset_loss_factor = float(offset_loss_factor)
+        self.heatmap_loss_factor = heatmap_loss_factor
+        self.offset_loss_factor = offset_loss_factor
         self.heatmap_loss = {"mse": self.heatmap_mse_loss, "qfl": self.heatmap_qfl_loss}[heatmap_loss]
 
     @property

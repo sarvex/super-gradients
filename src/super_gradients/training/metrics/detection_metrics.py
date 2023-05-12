@@ -53,7 +53,7 @@ class DetectionMetrics(Metric):
         else:
             self.iou_thresholds = torch.tensor([iou_thres])
 
-        self.map_str = "mAP" + self._get_range_str()
+        self.map_str = f"mAP{self._get_range_str()}"
         self.greater_component_is_better = {
             f"Precision{self._get_range_str()}": True,
             f"Recall{self._get_range_str()}": True,
@@ -169,7 +169,11 @@ class DetectionMetrics(Metric):
             setattr(self, f"matching_info{self._get_range_str()}", matching_info)
 
     def _get_range_str(self):
-        return "@%.2f" % self.iou_thresholds[0] if not len(self.iou_thresholds) > 1 else "@%.2f:%.2f" % (self.iou_thresholds[0], self.iou_thresholds[-1])
+        return (
+            "@%.2f" % self.iou_thresholds[0]
+            if len(self.iou_thresholds) <= 1
+            else "@%.2f:%.2f" % (self.iou_thresholds[0], self.iou_thresholds[-1])
+        )
 
 
 @register_metric(Metrics.DETECTION_METRICS_050)

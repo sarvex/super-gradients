@@ -6,6 +6,7 @@ https://github.com/NVIDIA/TensorRT/blob/51a4297753d3e12d0eed864be52400f429a6a94c
 
 (Licensed under the Apache License, Version 2.0)
 """
+
 import logging
 
 import torch
@@ -22,7 +23,7 @@ try:
     from pytorch_quantization import calib
 
     _imported_pytorch_quantization_failure = None
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
+except (ImportError, NameError) as import_err:
     logger.warning("Failed to import pytorch_quantization")
     _imported_pytorch_quantization_failure = import_err
 
@@ -63,22 +64,21 @@ class QuantizationCalibrator:
             logging.getLogger("absl").setLevel("ERROR")
 
         acceptable_methods = ["percentile", "mse", "entropy", "max"]
-        if method in acceptable_methods:
-            with torch.no_grad():
-                device = next(model.parameters()).device
-
-                self._collect_stats(model, calib_data_loader, num_batches=num_calib_batches)
-                # FOR PERCENTILE WE MUST PASS PERCENTILE VALUE THROUGH KWARGS,
-                # SO IT WOULD BE PASSED TO module.load_calib_amax(**kwargs), AND IN OTHER METHODS WE MUST NOT PASS IT.
-                if method == "precentile":
-                    self._compute_amax(model, method="percentile", percentile=percentile)
-                else:
-                    self._compute_amax(model, method=method)
-
-                model.to(device)
-        else:
+        if method not in acceptable_methods:
             raise ValueError(f"Unsupported quantization calibration method, " f"expected one of: {'.'.join(acceptable_methods)}, however, received: {method}")
 
+        with torch.no_grad():
+            device = next(model.parameters()).device
+
+            self._collect_stats(model, calib_data_loader, num_batches=num_calib_batches)
+            # FOR PERCENTILE WE MUST PASS PERCENTILE VALUE THROUGH KWARGS,
+            # SO IT WOULD BE PASSED TO module.load_calib_amax(**kwargs), AND IN OTHER METHODS WE MUST NOT PASS IT.
+            if method == "precentile":
+                self._compute_amax(model, method="percentile", percentile=percentile)
+            else:
+                self._compute_amax(model, method=method)
+
+            model.to(device)
         logging.getLogger("absl").setLevel(logging_level)
 
     def _collect_stats(self, model, data_loader, num_batches):
@@ -118,9 +118,11 @@ class QuantizationCalibrator:
 
     def reset_calibrators(self, model):
         for name, module in model.named_modules():
-            if isinstance(module, quant_nn.TensorQuantizer):
-                if module._calibrator is not None:
-                    module._calibrator.reset()  # release memory
+            if (
+                isinstance(module, quant_nn.TensorQuantizer)
+                and module._calibrator is not None
+            ):
+                module._calibrator.reset()  # release memory
 
     def _enable_calibrators(self, model):
         for name, module in model.named_modules():

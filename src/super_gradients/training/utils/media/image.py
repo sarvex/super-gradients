@@ -30,7 +30,7 @@ def load_images(images: Union[List[ImageSource], ImageSource]) -> List[np.ndarra
     :param images:  Single image or a list of images of supported types.
     :return:        List of images as numpy arrays. If loaded from string, the image will be returned as RGB.
     """
-    return [image for image in generate_image_loader(images=images)]
+    return list(generate_image_loader(images=images))
 
 
 def generate_image_loader(images: Union[List[ImageSource], ImageSource]) -> Iterable[np.ndarray]:
@@ -63,8 +63,11 @@ def list_images_in_folder(directory: str) -> List[str]:
     :return: A list of image file names.
     """
     files = os.listdir(directory)
-    images_paths = [os.path.join(directory, f) for f in files if f.lower().endswith((".jpg", ".jpeg", ".png", ".bmp", ".gif"))]
-    return images_paths
+    return [
+        os.path.join(directory, f)
+        for f in files
+        if f.lower().endswith((".jpg", ".jpeg", ".png", ".bmp", ".gif"))
+    ]
 
 
 def load_image(image: ImageSource) -> np.ndarray:
@@ -100,12 +103,11 @@ def load_np_image_from_pil(image: PIL.Image.Image) -> np.ndarray:
 def load_pil_image_from_str(image_str: str) -> PIL.Image.Image:
     """Load an image based on a string (local file path or URL)."""
 
-    if is_url(image_str):
-        response = requests.get(image_str, stream=True)
-        response.raise_for_status()
-        return PIL.Image.open(io.BytesIO(response.content))
-    else:
+    if not is_url(image_str):
         return PIL.Image.open(image_str)
+    response = requests.get(image_str, stream=True)
+    response.raise_for_status()
+    return PIL.Image.open(io.BytesIO(response.content))
 
 
 def save_image(image: np.ndarray, path: str) -> None:
@@ -146,7 +148,10 @@ def check_image_typing(image: ImageSource) -> bool:
     if isinstance(image, get_args(SingleImageSource)):
         return True
     elif isinstance(image, list):
-        return all([isinstance(image_item, get_args(SingleImageSource)) for image_item in image])
+        return all(
+            isinstance(image_item, get_args(SingleImageSource))
+            for image_item in image
+        )
     else:
         return False
 

@@ -131,17 +131,16 @@ class AutoTrainBatchSizeSelectionCallback(PreLaunchCallback):
                     fastest_batch_time = curr_batch_time
 
             except RuntimeError as e:
-                if "out of memory" in str(e):
-                    if curr_batch_size == self.min_batch_size:
-                        logger.error("Ran out of memory for the smallest batch, try setting smaller min_batch_size.")
-                        raise e
-                    else:
-                        selected_batch_size = curr_batch_size - self.size_step if self.mode == "largest" else fastest_batch_size
-                        msg = f"Ran out of memory for {curr_batch_size}, setting batch size to {selected_batch_size}."
-                        bs_found = True
-                else:
+                if "out of memory" not in str(e):
                     raise e
 
+                if curr_batch_size == self.min_batch_size:
+                    logger.error("Ran out of memory for the smallest batch, try setting smaller min_batch_size.")
+                    raise e
+                else:
+                    selected_batch_size = curr_batch_size - self.size_step if self.mode == "largest" else fastest_batch_size
+                    msg = f"Ran out of memory for {curr_batch_size}, setting batch size to {selected_batch_size}."
+                    bs_found = True
             else:
                 if self.max_batch_size is not None and curr_batch_size >= self.max_batch_size:
                     selected_batch_size = self.max_batch_size if self.mode == "largest" else fastest_batch_size

@@ -63,7 +63,7 @@ class GoogLeNet(SgModule):
 
     def _initialize_weights(self):
         for m in self.modules():
-            if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
+            if isinstance(m, (nn.Conv2d, nn.Linear)):
                 import scipy.stats as stats
 
                 x = stats.truncnorm(-2, 2, scale=0.01)
@@ -95,21 +95,13 @@ class GoogLeNet(SgModule):
         x = self.maxpool3(x)
         # N x 480 x 14 x 14
         x = self.inception4a(x)
-        # N x 512 x 14 x 14
-        aux1 = None
-        if self.aux1 is not None and self.training:
-            aux1 = self.aux1(x)
-
+        aux1 = self.aux1(x) if self.aux1 is not None and self.training else None
         x = self.inception4b(x)
         # N x 512 x 14 x 14
         x = self.inception4c(x)
         # N x 512 x 14 x 14
         x = self.inception4d(x)
-        # N x 528 x 14 x 14
-        aux2 = None
-        if self.aux2 is not None and self.training:
-            aux2 = self.aux2(x)
-
+        aux2 = self.aux2(x) if self.aux2 is not None and self.training else None
         x = self.inception4e(x)
         # N x 832 x 14 x 14
         x = self.maxpool4(x)
@@ -185,8 +177,7 @@ class Inception(nn.Module):
         branch3 = self.branch3(x)
         branch4 = self.branch4(x)
 
-        outputs = [branch1, branch2, branch3, branch4]
-        return outputs
+        return [branch1, branch2, branch3, branch4]
 
     def forward(self, x):
         outputs = self._forward(x)

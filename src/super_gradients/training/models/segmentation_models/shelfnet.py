@@ -130,7 +130,7 @@ class ShelfNetModuleBase(SgModule):
     def get_params(self):
         wd_params, nowd_params = [], []
         for name, module in self.named_modules():
-            if isinstance(module, nn.Linear) or isinstance(module, nn.Conv2d):
+            if isinstance(module, (nn.Linear, nn.Conv2d)):
                 wd_params.append(module.weight)
                 if module.bias is not None:
                     nowd_params.append(module.bias)
@@ -203,9 +203,7 @@ class DecoderHW(DecoderBase):
         bottom = out
 
         # UP BRANCH
-        up_out = []
-        up_out.append(bottom)
-
+        up_out = [bottom]
         for j in range(0, self.layers - 1):
             out = self.up_conv_list[j](out) + x[self.layers - j - 2]
             out = self.up_dense_list[j](out)
@@ -232,9 +230,7 @@ class DecoderLW(DecoderBase):
         bottom = out
 
         # UP BRANCH
-        up_out = []
-        up_out.append(bottom)
-
+        up_out = [bottom]
         for j in range(0, self.layers - 1):
             out = self.up_conv_list[j](out)
             out_interpolate = F.interpolate(out, (out.size(2) * 2, out.size(3) * 2), mode="nearest")
@@ -261,8 +257,7 @@ class AttentionRefinementModule(nn.Module):
         atten = self.conv_atten(atten)
         atten = self.bn_atten(atten)
         atten = self.sigmoid_atten(atten)
-        out = torch.mul(feat, atten)
-        return out
+        return torch.mul(feat, atten)
 
     def init_weight(self):
         for ly in self.children():
@@ -338,9 +333,7 @@ class LadderBlockHW(LadderBlockBase):
         bottom = out
 
         # up branch
-        up_out = []
-        up_out.append(bottom)
-
+        up_out = [bottom]
         for j in range(0, self.layers - 1):
             out = self.up_conv_list[j](out) + down_out[self.layers - j - 2]
             out = self.up_dense_list[j](out)
@@ -379,9 +372,7 @@ class LadderBlockLW(LadderBlockBase):
         bottom = out
 
         # UP BRANCH
-        up_out = []
-        up_out.append(bottom)
-
+        up_out = [bottom]
         for j in range(0, self.layers - 1):
             out = self.up_conv_list[j](out)
             out = F.interpolate(out, (out.size(2) * 2, out.size(3) * 2), mode="nearest") + down_out[self.layers - j - 2]
@@ -479,7 +470,7 @@ class ShelfNetHW(ShelfNetBase):
         mid_channels_num = self.net_output_mid_channels_num
 
         # INITIALIZE THE conv_out_list
-        for i in range(self.layers):
+        for _ in range(self.layers):
             self.conv_out_list.append(ConvBNReLU(in_chan=net_out_planes, out_chan=mid_channels_num, ks=1, padding=0))
 
             mid_channels_num *= 2
@@ -531,10 +522,7 @@ class ShelfNetHW(ShelfNetBase):
             :return: list of dictionaries with named params and optimizer attributes
         """
         # OPTIMIZER PARAMETER GROUPS
-        params_list = []
-
-        # OPTIMIZE BACKBONE USING DIFFERENT LR
-        params_list.append({"named_params": self.backbone.named_parameters(), "lr": lr})
+        params_list = [{"named_params": self.backbone.named_parameters(), "lr": lr}]
 
         # OPTIMIZE MAIN SHELFNET ARCHITECTURE LAYERS
         params_list.append(
@@ -591,18 +579,16 @@ class ShelfNetLW(ShelfNetBase):
         feat_out = self.net_output_list[0](feat_cp_list[0])
         feat_out = F.interpolate(feat_out, (H, W), mode="bilinear", align_corners=True)
 
-        if self.auxilary_head_outputs or self.training:
-            features_out_list = [feat_out]
-            for conv_output_layer, feat_cp in zip(self.net_output_list[1:], feat_cp_list[1:]):
-                feat_out_res = conv_output_layer(feat_cp)
-                feat_out_res = F.interpolate(feat_out_res, (H, W), mode="bilinear", align_corners=True)
-                features_out_list.append(feat_out_res)
-
-            return tuple(features_out_list)
-
-        else:
+        if not self.auxilary_head_outputs and not self.training:
             # THIS DOES NOT CALCULATE THE AUXILARY HEADS THAT ARE CRITICAL FOR THE LOSS (USED MAINLY FOR INFERENCE)
             return feat_out
+        features_out_list = [feat_out]
+        for conv_output_layer, feat_cp in zip(self.net_output_list[1:], feat_cp_list[1:]):
+            feat_out_res = conv_output_layer(feat_cp)
+            feat_out_res = F.interpolate(feat_out_res, (H, W), mode="bilinear", align_corners=True)
+            features_out_list.append(feat_out_res)
+
+        return tuple(features_out_list)
 
     def initialize_param_groups(self, lr: float, training_params: HpmStruct) -> list:
         """
@@ -614,10 +600,7 @@ class ShelfNetLW(ShelfNetBase):
             :return: list of dictionaries with named params and optimizer attributes
         """
         # OPTIMIZER PARAMETER GROUPS
-        params_list = []
-
-        # OPTIMIZE BACKBONE USING DIFFERENT LR
-        params_list.append({"named_params": self.backbone.named_parameters(), "lr": lr})
+        params_list = [{"named_params": self.backbone.named_parameters(), "lr": lr}]
 
         # OPTIMIZE MAIN SHELFNET ARCHITECTURE LAYERS
         params_list.append(

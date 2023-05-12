@@ -127,7 +127,7 @@ class CityscapesDataset(SegmentationDataSet):
 
         for hex_color in hex_colors:
             rgb_color = ImageColor.getcolor(hex_color, "RGB")
-            palette += [x for x in rgb_color]
+            palette += list(rgb_color)
 
         return palette
 

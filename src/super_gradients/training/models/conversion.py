@@ -78,8 +78,8 @@ def convert_to_onnx(
     """
     if not os.path.isdir(pathlib.Path(out_path).parent.resolve()):
         raise FileNotFoundError(f"Could not find destination directory {out_path} for the ONNX file.")
-    torch_onnx_export_kwargs = torch_onnx_export_kwargs or dict()
-    prep_model_for_conversion_kwargs = prep_model_for_conversion_kwargs or dict()
+    torch_onnx_export_kwargs = torch_onnx_export_kwargs or {}
+    prep_model_for_conversion_kwargs = prep_model_for_conversion_kwargs or {}
 
     if input_shape is not None:
         logger.warning(
@@ -90,7 +90,7 @@ def convert_to_onnx(
 
     onnx_input = torch.Tensor(np.zeros([1, *input_shape]))
     if not out_path.endswith(".onnx"):
-        out_path = out_path + ".onnx"
+        out_path += ".onnx"
     complete_model = ConvertableCompletePipelineModel(model, pre_process, post_process, **prep_model_for_conversion_kwargs)
 
     torch.onnx.export(model=complete_model, args=onnx_input, f=out_path, **torch_onnx_export_kwargs)

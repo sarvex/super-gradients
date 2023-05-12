@@ -41,9 +41,17 @@ class AccessCounterMixin:
         if count_usage:
             self._access_counter[key_with_prefix] += 1
         if isinstance(value, Mapping):
-            return AccessCounterDict(value, access_counter=self._access_counter, prefix=key_with_prefix + ".")
+            return AccessCounterDict(
+                value,
+                access_counter=self._access_counter,
+                prefix=f"{key_with_prefix}.",
+            )
         if isinstance(value, Iterable) and not isinstance(value, str):
-            return AccessCounterList(value, access_counter=self._access_counter, prefix=key_with_prefix + ".")
+            return AccessCounterList(
+                value,
+                access_counter=self._access_counter,
+                prefix=f"{key_with_prefix}.",
+            )
         return value
 
     @property
@@ -55,12 +63,10 @@ class AccessCounterMixin:
         raise NotImplementedError()
 
     def get_used_params(self) -> Set[str]:
-        used_params = {k for (k, v) in self._access_counter.items() if v > 0}
-        return used_params
+        return {k for (k, v) in self._access_counter.items() if v > 0}
 
     def get_unused_params(self) -> Set[str]:
-        unused_params = self.get_all_params() - self.get_used_params()
-        return unused_params
+        return self.get_all_params() - self.get_used_params()
 
     def __copy__(self):
         cls = self.__class__
@@ -82,7 +88,7 @@ class AccessCounterDict(Mapping, AccessCounterMixin):
         super().__init__()
         self.config = config
         self._access_counter = access_counter or defaultdict(int)
-        self._prefix = str(prefix)
+        self._prefix = prefix
 
     def __iter__(self):
         return self.config.__iter__()
@@ -125,7 +131,7 @@ class AccessCounterHpmStruct(Mapping, AccessCounterMixin):
         super().__init__()
         self.config = config
         self._access_counter = access_counter or defaultdict(int)
-        self._prefix = str(prefix)
+        self._prefix = prefix
 
     def __iter__(self):
         return self.config.__dict__.__iter__()
@@ -171,7 +177,7 @@ class AccessCounterList(list, AccessCounterMixin):
     def __init__(self, config: Iterable, access_counter: Mapping[str, int] = None, prefix: str = ""):
         super().__init__(config)
         self._access_counter = access_counter or defaultdict(int)
-        self._prefix = str(prefix)
+        self._prefix = prefix
 
     def __iter__(self):
         for index, value in enumerate(super().__iter__()):
@@ -209,9 +215,7 @@ class ConfigInspector:
                 raise UnusedConfigParamException(message)
             elif self.unused_params_action == "warn":
                 logger.warning(message)
-            elif self.unused_params_action == "ignore":
-                pass
-            else:
+            elif self.unused_params_action != "ignore":
                 raise KeyError(f"Encountered unknown action key {self.unused_params_action}")
 
 

@@ -142,7 +142,7 @@ class MonitoredValue:
         has_increased, has_decreased = delta > 0, delta < 0
         if has_increased and self.greater_is_better or has_decreased and not self.greater_is_better:
             return ImprovementType.IS_BETTER
-        elif has_increased and not self.greater_is_better or has_decreased and self.greater_is_better:
+        elif has_increased or has_decreased:
             return ImprovementType.IS_WORSE
         else:
             return ImprovementType.IS_SAME
@@ -190,7 +190,7 @@ def update_monitored_values_dict(monitored_values_dict: Dict[str, MonitoredValue
     :param new_values_dict: Dict mapping value names to their new (i.e. current epoch) value.
     :return: Updated monitored_values_dict
     """
-    for monitored_value_name in monitored_values_dict.keys():
+    for monitored_value_name in monitored_values_dict:
         monitored_values_dict[monitored_value_name] = update_monitored_value(
             new_value=new_values_dict[monitored_value_name],
             previous_monitored_value=monitored_values_dict[monitored_value_name],
@@ -270,7 +270,7 @@ def try_port(port):
         is_port_available = True
 
     except Exception as ex:
-        print("Port " + str(port) + " is in use" + str(ex))
+        print(f"Port {str(port)} is in use{str(ex)}")
 
     sock.close()
     return is_port_available
@@ -286,25 +286,22 @@ def launch_tensorboard_process(checkpoints_dir_path: str, sleep_postpone: bool =
         :return: tuple of tb process, port
     """
     logdir_path = str(Path(checkpoints_dir_path).parent.absolute())
-    tb_cmd = "tensorboard --logdir=" + logdir_path + " --bind_all"
-    if port is not None:
-        tb_ports = [port]
-    else:
-        tb_ports = range(6006, 6016)
-
+    tb_cmd = f"tensorboard --logdir={logdir_path} --bind_all"
+    tb_ports = [port] if port is not None else range(6006, 6016)
     for tb_port in tb_ports:
         if not try_port(tb_port):
             continue
-        else:
-            print("Starting Tensor-Board process on port: " + str(tb_port))
-            tensor_board_process = Process(target=os.system, args=([tb_cmd + " --port=" + str(tb_port)]))
-            tensor_board_process.daemon = True
-            tensor_board_process.start()
+        print(f"Starting Tensor-Board process on port: {str(tb_port)}")
+        tensor_board_process = Process(
+            target=os.system, args=[f"{tb_cmd} --port={str(tb_port)}"]
+        )
+        tensor_board_process.daemon = True
+        tensor_board_process.start()
 
-            # LET THE TENSORBOARD PROCESS START
-            if sleep_postpone:
-                time.sleep(3)
-            return tensor_board_process, tb_port
+        # LET THE TENSORBOARD PROCESS START
+        if sleep_postpone:
+            time.sleep(3)
+        return tensor_board_process, tb_port
 
     # RETURNING IRRELEVANT VALUES
     print("Failed to initialize Tensor-Board process on port: " + ", ".join(map(str, tb_ports)))
@@ -319,22 +316,24 @@ def init_summary_writer(tb_dir, checkpoint_loaded, user_prompt=False):
         for filename in os.listdir(tb_dir):
             if "events" in filename:
                 if not user_prompt:
-                    logger.debug('"{}" will not be deleted'.format(filename))
+                    logger.debug(f'"{filename}" will not be deleted')
                     continue
 
                 while True:
                     # Verify with user before deleting old tensorboard files
                     user = (
-                        input('\nOLDER TENSORBOARD FILES EXISTS IN EXPERIMENT FOLDER:\n"{}"\n' "DO YOU WANT TO DELETE THEM? [y/n]".format(filename))
+                        input(
+                            f'\nOLDER TENSORBOARD FILES EXISTS IN EXPERIMENT FOLDER:\n"{filename}"\nDO YOU WANT TO DELETE THEM? [y/n]'
+                        )
                         if (user != "n" or user != "y")
                         else user
                     )
                     if user == "y":
-                        os.remove("{}/{}".format(tb_dir, filename))
-                        print("DELETED: {}!".format(filename))
+                        os.remove(f"{tb_dir}/{filename}")
+                        print(f"DELETED: {filename}!")
                         break
                     elif user == "n":
-                        print('"{}" will not be deleted'.format(filename))
+                        print(f'"{filename}" will not be deleted')
                         break
                     print("Unknown answer...")
 
@@ -350,7 +349,7 @@ def add_log_to_file(filename, results_titles_list, results_values_list, epoch, m
         for result_title, result_value in zip(results_titles_list, results_values_list):
             if isinstance(result_value, torch.Tensor):
                 result_value = result_value.item()
-            f.write(result_title + ": " + str(result_value) + "\t")
+            f.write(f"{result_title}: {str(result_value)}" + "\t")
 
 
 def write_training_results(writer, results_titles_list, results_values_list, epoch):
@@ -367,9 +366,9 @@ def write_hpms(writer, hpmstructs=[], special_conf={}):
     hpm_string = ""
     for hpm in hpmstructs:
         for key, val in hpm.__dict__.items():
-            hpm_string += "{}: {}  \n  ".format(key, val)
+            hpm_string += f"{key}: {val}  \n  "
     for key, val in special_conf.items():
-        hpm_string += "{}: {}  \n  ".format(key, val)
+        hpm_string += f"{key}: {val}  \n  "
     writer.add_text("Hyper_parameters", hpm_string)
     writer.flush()
 
@@ -434,11 +433,11 @@ def parse_args(cfg, arg_names: Union[Sequence[str], callable]) -> dict:
     if not isinstance(arg_names, Sequence):
         arg_names = get_callable_param_names(arg_names)
 
-    kwargs_dict = {}
-    for arg_name in arg_names:
-        if hasattr(cfg, arg_name) and getattr(cfg, arg_name) is not None:
-            kwargs_dict[arg_name] = getattr(cfg, arg_name)
-    return kwargs_dict
+    return {
+        arg_name: getattr(cfg, arg_name)
+        for arg_name in arg_names
+        if hasattr(cfg, arg_name) and getattr(cfg, arg_name) is not None
+    }
 
 
 def get_callable_param_names(obj: callable) -> Tuple[str]:
@@ -453,16 +452,5 @@ def log_main_training_params(
     multi_gpu: MultiGPUMode, num_gpus: int, batch_size: int, batch_accumulate: int, train_dataset_length: int, train_dataloader_len: int
 ):
     """Log training parameters"""
-    msg = (
-        "TRAINING PARAMETERS:\n"
-        f"    - Mode:                         {multi_gpu.name if multi_gpu else 'Single GPU'}\n"
-        f"    - Number of GPUs:               {num_gpus if 'cuda' in device_config.device  else 0:<10} ({torch.cuda.device_count()} available on the machine)\n"
-        f"    - Dataset size:                 {train_dataset_length:<10} (len(train_set))\n"
-        f"    - Batch size per GPU:           {batch_size:<10} (batch_size)\n"
-        f"    - Batch Accumulate:             {batch_accumulate:<10} (batch_accumulate)\n"
-        f"    - Total batch size:             {num_gpus * batch_size:<10} (num_gpus * batch_size)\n"
-        f"    - Effective Batch size:         {num_gpus * batch_size * batch_accumulate:<10} (num_gpus * batch_size * batch_accumulate)\n"
-        f"    - Iterations per epoch:         {int(train_dataloader_len):<10} (len(train_loader))\n"
-        f"    - Gradient updates per epoch:   {int(train_dataloader_len / batch_accumulate):<10} (len(train_loader) / batch_accumulate)\n"
-    )
+    msg = f"TRAINING PARAMETERS:\n    - Mode:                         {multi_gpu.name if multi_gpu else 'Single GPU'}\n    - Number of GPUs:               {num_gpus if 'cuda' in device_config.device else 0:<10} ({torch.cuda.device_count()} available on the machine)\n    - Dataset size:                 {train_dataset_length:<10} (len(train_set))\n    - Batch size per GPU:           {batch_size:<10} (batch_size)\n    - Batch Accumulate:             {batch_accumulate:<10} (batch_accumulate)\n    - Total batch size:             {num_gpus * batch_size:<10} (num_gpus * batch_size)\n    - Effective Batch size:         {num_gpus * batch_size * batch_accumulate:<10} (num_gpus * batch_size * batch_accumulate)\n    - Iterations per epoch:         {train_dataloader_len:<10} (len(train_loader))\n    - Gradient updates per epoch:   {train_dataloader_len // batch_accumulate:<10} (len(train_loader) / batch_accumulate)\n"
     logger.info(msg)

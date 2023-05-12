@@ -400,11 +400,10 @@ class Beit(SgModule):
 
     @torch.jit.ignore
     def group_matcher(self, coarse=False):
-        matcher = dict(
+        return dict(
             stem=r"^cls_token|pos_embed|patch_embed|rel_pos_bias",  # stem and embed
             blocks=[(r"^blocks\.(\d+)", None), (r"^norm", (99999,))],
         )
-        return matcher
 
     @torch.jit.ignore
     def get_classifier(self):

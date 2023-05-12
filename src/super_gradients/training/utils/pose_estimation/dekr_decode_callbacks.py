@@ -19,9 +19,7 @@ def get_locations(output_h: int, output_w: int, device):
     shift_y, shift_x = torch.meshgrid(shifts_y, shifts_x, indexing="ij")
     shift_x = shift_x.reshape(-1)
     shift_y = shift_y.reshape(-1)
-    locations = torch.stack((shift_x, shift_y), dim=1)
-
-    return locations
+    return torch.stack((shift_x, shift_y), dim=1)
 
 
 def get_reg_poses(offset: Tensor, num_joints: int):
@@ -36,9 +34,7 @@ def get_reg_poses(offset: Tensor, num_joints: int):
     offset = offset.permute(1, 2, 0).reshape(h * w, num_joints, 2)
     locations = get_locations(h, w, offset.device)
     locations = locations[:, None, :].expand(-1, num_joints, -1)
-    poses = locations - offset
-
-    return poses
+    return locations - offset
 
 
 def _offset_to_pose(offset, flip=False, flip_index=None):
@@ -70,13 +66,11 @@ def _hierarchical_pool(heatmap, pool_threshold1=300, pool_threshold2=200):
     pool3 = torch.nn.MaxPool2d(7, 1, 3)
     map_size = (heatmap.shape[1] + heatmap.shape[2]) / 2.0
     if map_size > pool_threshold1:
-        maxm = pool3(heatmap[None, :, :, :])
+        return pool3(heatmap[None, :, :, :])
     elif map_size > pool_threshold2:
-        maxm = pool2(heatmap[None, :, :, :])
+        return pool2(heatmap[None, :, :, :])
     else:
-        maxm = pool1(heatmap[None, :, :, :])
-
-    return maxm
+        return pool1(heatmap[None, :, :, :])
 
 
 def _get_maximum_from_heatmap(heatmap, max_num_people: int, keypoint_threshold: float):
@@ -136,7 +130,7 @@ def _nms_core(pose_coord, heat_score, nms_threshold: float, nms_num_threshold: i
             continue
         keep_inds = nms_pose[i].nonzero().cpu().numpy()
         keep_inds = [list(kind)[0] for kind in keep_inds]
-        if len(keep_inds) == 0:
+        if not keep_inds:
             continue
         keep_scores = heat_score[keep_inds]
         ind = torch.argmax(keep_scores)
@@ -155,8 +149,7 @@ def _get_heat_value(pose_coord, heatmap):
 
     y_b = torch.clamp(torch.floor(pose_coord[:, :, 1]), 0, h - 1).long()
     x_l = torch.clamp(torch.floor(pose_coord[:, :, 0]), 0, w - 1).long()
-    heatval = torch.gather(heatmap_nocenter, 0, y_b * w + x_l).unsqueeze(-1)
-    return heatval
+    return torch.gather(heatmap_nocenter, 0, y_b * w + x_l).unsqueeze(-1)
 
 
 def pose_nms(heatmap_avg, poses, max_num_people: int, nms_threshold: float, nms_num_threshold: int) -> Tuple[np.ndarray, np.ndarray]:
@@ -219,8 +212,6 @@ def aggregate_results(heatmap: Tensor, posemap: Tensor, output_stride: int, keyp
         - poses (List): Gather of the pose proposals [B, (num_people, num_joints, 3)]
     """
 
-    poses = []
-
     h, w = heatmap[0].size(-1), heatmap[0].size(-2)
 
     heatmap_sum = _up_interpolate(heatmap, size=(int(output_stride * w), int(output_stride * h)))
@@ -229,8 +220,7 @@ def aggregate_results(heatmap: Tensor, posemap: Tensor, output_stride: int, keyp
     posemap = posemap[0].permute(1, 2, 0).view(h * w, -1, 2)
     pose = output_stride * posemap[pose_ind]
     ctr_score = ctr_score[:, None].expand(-1, pose.shape[-2])[:, :, None]
-    poses.append(torch.cat([pose, ctr_score], dim=2))
-
+    poses = [torch.cat([pose, ctr_score], dim=2)]
     return heatmap_sum, poses
 
 

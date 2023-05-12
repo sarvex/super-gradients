@@ -90,7 +90,7 @@ class BinarySegmentationVisualization:
         if checkpoint_dir is None:
             return res_image
         else:
-            cv2.imwrite(os.path.join(checkpoint_dir, str(image_name) + ".jpg"), res_image)
+            cv2.imwrite(os.path.join(checkpoint_dir, f"{image_name}.jpg"), res_image)
 
     @staticmethod
     def visualize_batch(

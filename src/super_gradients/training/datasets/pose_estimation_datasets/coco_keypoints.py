@@ -153,13 +153,14 @@ class COCOKeypointsDataset(BaseKeypointsDataset):
         """
         joints = []
 
-        for i, obj in enumerate(anno):
+        for obj in anno:
             keypoints = np.array(obj["keypoints"]).reshape([-1, 3])
             joints.append(keypoints)
 
         num_instances = len(joints)
-        joints = np.array(joints, dtype=np.float32).reshape((num_instances, self.num_joints, 3))
-        return joints
+        return np.array(joints, dtype=np.float32).reshape(
+            (num_instances, self.num_joints, 3)
+        )
 
     def get_mask(self, anno, img_info) -> np.ndarray:
         """

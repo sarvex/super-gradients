@@ -64,9 +64,7 @@ class Darknet53Base(SgModule):
         return out
 
     def _make_layer(self, block, in_channels, num_blocks):
-        layers = []
-        for i in range(0, num_blocks):
-            layers.append(block(in_channels))
+        layers = [block(in_channels) for _ in range(0, num_blocks)]
         return nn.Sequential(*layers)
 
 

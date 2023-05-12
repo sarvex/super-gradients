@@ -24,13 +24,12 @@ def xyxy_to_cxcywh(bboxes, image_shape: Tuple[int, int]):
     cy = y1 + 0.5 * h
     if torch.jit.is_scripting():
         return torch.stack([cx, cy, w, h], dim=-1)
+    if torch.is_tensor(bboxes):
+        return torch.stack([cx, cy, w, h], dim=-1)
+    elif isinstance(bboxes, np.ndarray):
+        return np.stack([cx, cy, w, h], axis=-1)
     else:
-        if torch.is_tensor(bboxes):
-            return torch.stack([cx, cy, w, h], dim=-1)
-        elif isinstance(bboxes, np.ndarray):
-            return np.stack([cx, cy, w, h], axis=-1)
-        else:
-            raise RuntimeError(f"Only Torch tensor or Numpy array is supported. Received bboxes of type {str(type(bboxes))}")
+        raise RuntimeError(f"Only Torch tensor or Numpy array is supported. Received bboxes of type {str(type(bboxes))}")
 
 
 def cxcywh_to_xyxy(bboxes, image_shape: Tuple[int, int]):
@@ -47,13 +46,12 @@ def cxcywh_to_xyxy(bboxes, image_shape: Tuple[int, int]):
 
     if torch.jit.is_scripting():
         return torch.stack([x1, y1, x2, y2], dim=-1)
+    if torch.is_tensor(bboxes):
+        return torch.stack([x1, y1, x2, y2], dim=-1)
+    if isinstance(bboxes, np.ndarray):
+        return np.stack([x1, y1, x2, y2], axis=-1)
     else:
-        if torch.is_tensor(bboxes):
-            return torch.stack([x1, y1, x2, y2], dim=-1)
-        if isinstance(bboxes, np.ndarray):
-            return np.stack([x1, y1, x2, y2], axis=-1)
-        else:
-            raise RuntimeError(f"Only Torch tensor or Numpy array is supported. Received bboxes of type {str(type(bboxes))}")
+        raise RuntimeError(f"Only Torch tensor or Numpy array is supported. Received bboxes of type {str(type(bboxes))}")
 
 
 def is_floating_point_array(array: Union[np.ndarray, Any]) -> bool:
@@ -114,13 +112,7 @@ class CXCYWHCoordinateFormat(BoundingBoxFormat):
         self.normalized = False
 
     def get_to_xyxy(self, inplace: bool):
-        if inplace:
-            return cxcywh_to_xyxy_inplace
-        else:
-            return cxcywh_to_xyxy
+        return cxcywh_to_xyxy_inplace if inplace else cxcywh_to_xyxy
 
     def get_from_xyxy(self, inplace: bool):
-        if inplace:
-            return xyxy_to_cxcywh_inplace
-        else:
-            return xyxy_to_cxcywh
+        return xyxy_to_cxcywh_inplace if inplace else xyxy_to_cxcywh

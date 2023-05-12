@@ -184,10 +184,7 @@ class ViT(SgModule):
         x = self.transformer(x)
         x = self.pre_head_norm(x)
         x = x[:, 0]
-        if self.backbone_mode:
-            return x
-        else:
-            return self.head(x)
+        return x if self.backbone_mode else self.head(x)
 
     def replace_head(self, new_num_classes=None, new_head=None):
         if new_num_classes is None and new_head is None:

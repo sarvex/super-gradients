@@ -59,8 +59,7 @@ class SequentialWithIntermediates(nn.Sequential):
     def forward(self, input: Tensor) -> List[Tensor]:
         if self.output_intermediates:
             output = [input]
-            for module in self:
-                output.append(module(output[-1]))
+            output.extend(module(output[-1]) for module in self)
             return output
         #  For uniformity, we return a list even if we don't output intermediates
         return [super(SequentialWithIntermediates, self).forward(input)]

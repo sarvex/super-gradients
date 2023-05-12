@@ -84,14 +84,25 @@ class STDCStage(BackboneStage):
         :return:
         """
         self.assert_divisible_channels(out_channels, steps)
-        blocks = []
-        # STDC blocks
-        blocks.extend(
-            [
-                STDCBlock(in_channels, out_channels, stride=stride, steps=steps, stdc_downsample_mode=stdc_downsample_mode),
-                *[STDCBlock(out_channels, out_channels, stride=1, steps=steps, stdc_downsample_mode=stdc_downsample_mode) for _ in range(num_blocks - 1)],
-            ]
-        )
+        blocks = [
+            STDCBlock(
+                in_channels,
+                out_channels,
+                stride=stride,
+                steps=steps,
+                stdc_downsample_mode=stdc_downsample_mode,
+            ),
+            *[
+                STDCBlock(
+                    out_channels,
+                    out_channels,
+                    stride=1,
+                    steps=steps,
+                    stdc_downsample_mode=stdc_downsample_mode,
+                )
+                for _ in range(num_blocks - 1)
+            ],
+        ]
         return nn.Sequential(*blocks)
 
     @staticmethod
@@ -206,10 +217,14 @@ class RegnetXStage(BackboneStage):
         if group_width > inter_channels:
             return inter_channels
         group_pow = int(math.log2(group_width))
-        for pow in range(group_pow, -1, -1):
-            if (inter_channels / 2**pow) % 1 == 0:
-                return int(2**pow)
-        return 1
+        return next(
+            (
+                int(2**pow)
+                for pow in range(group_pow, -1, -1)
+                if (inter_channels / 2**pow) % 1 == 0
+            ),
+            1,
+        )
 
 
 @register_unet_backbone_stage()

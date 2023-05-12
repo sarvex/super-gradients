@@ -77,9 +77,15 @@ class LightweightDEKRHead(BaseDetectionModule):
 
         offset_feature = self.transition_offset(x)
 
-        final_offset = []
-        for j in range(self.num_joints):
-            final_offset.append(self.offset_heads[j](offset_feature[:, j * self.keypoint_channels : (j + 1) * self.keypoint_channels]))
+        final_offset = [
+            self.offset_heads[j](
+                offset_feature[
+                    :,
+                    j * self.keypoint_channels : (j + 1) * self.keypoint_channels,
+                ]
+            )
+            for j in range(self.num_joints)
+        ]
         offset = torch.cat(final_offset, dim=1)
 
         return heatmap, offset

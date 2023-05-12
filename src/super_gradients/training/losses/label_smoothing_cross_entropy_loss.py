@@ -26,10 +26,10 @@ def onehot(indexes, N=None, ignore_index=None):
 def _is_long(x):
     if hasattr(x, "data"):
         x = x.data
-    return isinstance(x, torch.LongTensor) or isinstance(x, torch.cuda.LongTensor)
+    return isinstance(x, (torch.LongTensor, torch.cuda.LongTensor))
 
 
-def cross_entropy(inputs, target, weight=None, ignore_index=-100, reduction="mean", smooth_eps=None, smooth_dist=None, from_logits=True):  # noqa: C901
+def cross_entropy(inputs, target, weight=None, ignore_index=-100, reduction="mean", smooth_eps=None, smooth_dist=None, from_logits=True):    # noqa: C901
     """cross entropy loss, with support for target distributions and label smoothing https://arxiv.org/abs/1512.00567"""
     smooth_eps = smooth_eps or 0
 
@@ -40,12 +40,7 @@ def cross_entropy(inputs, target, weight=None, ignore_index=-100, reduction="mea
         else:
             return F.nll_loss(inputs, target, weight, ignore_index=ignore_index, reduction=reduction)
 
-    if from_logits:
-        # log-softmax of inputs
-        lsm = F.log_softmax(inputs, dim=-1)
-    else:
-        lsm = inputs
-
+    lsm = F.log_softmax(inputs, dim=-1) if from_logits else inputs
     masked_indices = None
     num_classes = inputs.size(-1)
 

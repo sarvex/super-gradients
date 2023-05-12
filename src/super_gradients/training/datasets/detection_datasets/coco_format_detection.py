@@ -75,7 +75,9 @@ class COCOFormatDetectionDataset(DetectionDataset):
 
         self.coco = self._init_coco()
         self.class_ids = sorted(cls_id for cls_id in self.coco.getCatIds() if cls_id not in self.class_ids_to_ignore)
-        self.original_classes = list([category["name"] for category in self.coco.loadCats(self.class_ids)])
+        self.original_classes = [
+            category["name"] for category in self.coco.loadCats(self.class_ids)
+        ]
         self.classes = copy.deepcopy(self.original_classes)
         self.sample_id_to_coco_id = self.coco.getImgIds()
         return len(self.sample_id_to_coco_id)
@@ -87,7 +89,9 @@ class COCOFormatDetectionDataset(DetectionDataset):
     def _init_coco(self) -> COCO:
         annotation_file_path = os.path.join(self.data_dir, self.json_annotation_file)
         if not os.path.exists(annotation_file_path):
-            raise ValueError("Could not find annotation file under " + str(annotation_file_path))
+            raise ValueError(
+                f"Could not find annotation file under {str(annotation_file_path)}"
+            )
 
         if not self.verbose:
             with redirect_stdout(open(os.devnull, "w")):
@@ -141,8 +145,9 @@ class COCOFormatDetectionDataset(DetectionDataset):
             target[ix, 0:4] = annotation["clean_bbox"]
             target[ix, 4] = cls
             if self.tight_box_rotation:
-                seg_points = [j for i in annotation.get("segmentation", []) for j in i]
-                if seg_points:
+                if seg_points := [
+                    j for i in annotation.get("segmentation", []) for j in i
+                ]:
                     seg_points_c = np.array(seg_points).reshape((-1, 2)).astype(np.int)
                     seg_points_convex = cv2.convexHull(seg_points_c).ravel()
                 else:
@@ -172,7 +177,7 @@ class COCOFormatDetectionDataset(DetectionDataset):
         img_path = os.path.join(self.data_dir, self.images_dir, file_name)
         img_id = self.sample_id_to_coco_id[sample_id]
 
-        annotation = {
+        return {
             "target": target,
             "crowd_target": crowd_target,
             "target_segmentation": target_segmentation,
@@ -181,7 +186,6 @@ class COCOFormatDetectionDataset(DetectionDataset):
             "img_path": img_path,
             "id": np.array([img_id]),
         }
-        return annotation
 
 
 def remove_useless_info(coco: COCO, use_seg_info: bool = False) -> None:

@@ -9,7 +9,7 @@ try:
     from pytorch_quantization import nn as quant_nn
 
     _imported_pytorch_quantization_failure = None
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
+except (ImportError, NameError) as import_err:
     logger.warning("Failed to import pytorch_quantization")
     _imported_pytorch_quantization_failure = import_err
 
@@ -31,7 +31,7 @@ def export_quantized_module_to_onnx(model: torch.nn.Module, onnx_filename: str, 
     quant_nn.TensorQuantizer.use_fb_fake_quant = True
 
     # Export ONNX for multiple batch sizes
-    logger.info("Creating ONNX file: " + onnx_filename)
+    logger.info(f"Creating ONNX file: {onnx_filename}")
 
     if train:
         training_mode = TrainingMode.TRAINING
@@ -44,11 +44,7 @@ def export_quantized_module_to_onnx(model: torch.nn.Module, onnx_filename: str, 
 
     # workaround when model.prep_model_for_conversion does reparametrization
     # and tensors get scattered to different devices
-    if to_cpu:
-        export_model = model.cpu()
-    else:
-        export_model = model
-
+    export_model = model.cpu() if to_cpu else model
     dummy_input = torch.randn(input_shape, device=next(model.parameters()).device)
     torch.onnx.export(export_model, dummy_input, onnx_filename, verbose=False, opset_version=13, do_constant_folding=True, training=training_mode)
 

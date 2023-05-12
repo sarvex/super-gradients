@@ -19,7 +19,7 @@ try:
     from clearml import Task
 
     _imported_clear_ml_failure = None
-except (ImportError, NameError, ModuleNotFoundError) as import_err:
+except (ImportError, NameError) as import_err:
     logger.debug("Failed to import clearml")
     _imported_clear_ml_failure = import_err
 

@@ -113,7 +113,9 @@ class ReverseImageChannels(Processing):
         """
 
         if image.shape[2] != 3:
-            raise ValueError("ReverseImageChannels expects 3 channels, got: " + str(image.shape[2]))
+            raise ValueError(
+                f"ReverseImageChannels expects 3 channels, got: {str(image.shape[2])}"
+            )
 
         processed_image = image[..., ::-1]
         return processed_image, None
@@ -273,13 +275,12 @@ def default_yolox_coco_processing_params() -> dict:
         ]
     )
 
-    params = dict(
+    return dict(
         class_names=COCO_DETECTION_CLASSES_LIST,
         image_processor=image_processor,
         iou=0.65,
         conf=0.1,
     )
-    return params
 
 
 def default_ppyoloe_coco_processing_params() -> dict:
@@ -296,13 +297,12 @@ def default_ppyoloe_coco_processing_params() -> dict:
         ]
     )
 
-    params = dict(
+    return dict(
         class_names=COCO_DETECTION_CLASSES_LIST,
         image_processor=image_processor,
         iou=0.65,
         conf=0.5,
     )
-    return params
 
 
 def default_yolo_nas_coco_processing_params() -> dict:
@@ -319,13 +319,12 @@ def default_yolo_nas_coco_processing_params() -> dict:
         ]
     )
 
-    params = dict(
+    return dict(
         class_names=COCO_DETECTION_CLASSES_LIST,
         image_processor=image_processor,
         iou=0.7,
         conf=0.25,
     )
-    return params
 
 
 def get_pretrained_processing_params(model_name: str, pretrained_weights: str) -> dict:
@@ -339,4 +338,4 @@ def get_pretrained_processing_params(model_name: str, pretrained_weights: str) -
             return default_ppyoloe_coco_processing_params()
         elif "yolo_nas" in model_name:
             return default_yolo_nas_coco_processing_params()
-    return dict()
+    return {}

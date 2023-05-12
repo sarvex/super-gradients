@@ -40,7 +40,7 @@ class ShortenedRecipesAccuracyTests(unittest.TestCase):
         metric_val_reached = sd["acc"].cpu().item()
         diff = abs(metric_val_reached - metric_value)
         print(
-            "Goal metric value: " + str(metric_value) + ", metric value reached: " + str(metric_val_reached) + ",diff: " + str(diff) + ", delta: " + str(delta)
+            f"Goal metric value: {metric_value}, metric value reached: {str(metric_val_reached)},diff: {str(diff)}, delta: {delta}"
         )
         return diff <= delta
 

@@ -262,7 +262,7 @@ class Trainer:
 
     @classmethod
     def _trigger_cfg_modifying_callbacks(cls, cfg):
-        pre_launch_cbs = get_param(cfg, "pre_launch_callbacks_list", list())
+        pre_launch_cbs = get_param(cfg, "pre_launch_callbacks_list", [])
         pre_launch_cbs = ListFactory(PreLaunchCallbacksFactory()).get(pre_launch_cbs)
         for plcb in pre_launch_cbs:
             cfg = plcb(cfg)
@@ -509,8 +509,14 @@ class Trainer:
         for metric_name in get_metrics_titles(self.valid_metrics):
             self.valid_monitored_values[metric_name] = MonitoredValue(name=metric_name, greater_is_better=self.greater_valid_metrics_is_better.get(metric_name))
 
-        self.results_titles = ["Train_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.train_metrics)] + [
-            "Valid_" + t for t in self.loss_logging_items_names + get_metrics_titles(self.valid_metrics)
+        self.results_titles = [
+            f"Train_{t}"
+            for t in self.loss_logging_items_names
+            + get_metrics_titles(self.train_metrics)
+        ] + [
+            f"Valid_{t}"
+            for t in self.loss_logging_items_names
+            + get_metrics_titles(self.valid_metrics)
         ]
 
         if self.training_params.average_best_models:
@@ -582,7 +588,10 @@ class Trainer:
         metric = (
             validation_results_tuple[self.metric_idx_in_results_tuple]
             if isinstance(self.metric_idx_in_results_tuple, int)
-            else sum([validation_results_tuple[idx] for idx in self.metric_idx_in_results_tuple])
+            else sum(
+                validation_results_tuple[idx]
+                for idx in self.metric_idx_in_results_tuple
+            )
         )
 
         # BUILD THE state_dict
@@ -617,7 +626,9 @@ class Trainer:
 
             if isinstance(metric, torch.Tensor):
                 metric = metric.item()
-            logger.info("Best checkpoint overriden: validation " + self.metric_to_watch + ": " + str(metric))
+            logger.info(
+                f"Best checkpoint overriden: validation {self.metric_to_watch}: {str(metric)}"
+            )
 
         if self.training_params.average_best_models:
             net_for_averaging = self.ema_model.ema if self.ema else self.net

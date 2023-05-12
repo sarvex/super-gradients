@@ -29,8 +29,7 @@ class PoseRescoringNet(SgModule):
         in_channels = len(joint_links) * 2 + len(joint_links) + num_classes  # [joint_relate, joint_length, visibility]
         layers = []
         for _ in range(num_layers):
-            layers.append(nn.Linear(in_channels, hidden_channels, bias=True))
-            layers.append(nn.ReLU())
+            layers.extend((nn.Linear(in_channels, hidden_channels, bias=True), nn.ReLU()))
             in_channels = hidden_channels
         self.layers = nn.Sequential(*layers)
         self.final = nn.Linear(hidden_channels, 1, bias=True)

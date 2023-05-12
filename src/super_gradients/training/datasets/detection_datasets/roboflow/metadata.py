@@ -112,7 +112,9 @@ DATASETS_METADATA = {
     "cell-towers": {"category": "real world", "train": 705, "test": 101, "valid": 202, "size": 1008, "num_classes": 2, "num_classes_found": 2},
 }
 
-DATASETS_CATEGORIES = tuple(set(metadata["category"] for metadata in DATASETS_METADATA.values()))
+DATASETS_CATEGORIES = tuple(
+    {metadata["category"] for metadata in DATASETS_METADATA.values()}
+)
 
 
 # The number of classes from their doc is different from what we find in the dataset.

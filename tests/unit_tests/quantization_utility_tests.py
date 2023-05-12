@@ -17,7 +17,7 @@ try:
 
     _imported_pytorch_quantization_failure = False
 
-except (ImportError, NameError, ModuleNotFoundError):
+except (ImportError, NameError):
     _imported_pytorch_quantization_failure = True
 
 

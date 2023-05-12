@@ -74,13 +74,14 @@ class PPYoloE(SgModule):
         iou = iou or self._default_nms_iou
         conf = conf or self._default_nms_conf
 
-        pipeline = DetectionPipeline(
+        return DetectionPipeline(
             model=self,
             image_processor=self._image_processor,
-            post_prediction_callback=self.get_post_prediction_callback(iou=iou, conf=conf),
+            post_prediction_callback=self.get_post_prediction_callback(
+                iou=iou, conf=conf
+            ),
             class_names=self._class_names,
         )
-        return pipeline
 
     def predict(self, images: ImageSource, iou: Optional[float] = None, conf: Optional[float] = None) -> ImagesDetectionPrediction:
         """Predict an image or a list of images.

@@ -25,7 +25,7 @@ class PPYoloESPP(nn.Module):
         super().__init__()
         mid_channels = in_channels * (1 + len(pool_size))
         pools = []
-        for i, size in enumerate(pool_size):
+        for size in pool_size:
             pool = nn.MaxPool2d(kernel_size=size, stride=1, padding=size // 2, ceil_mode=False)
             pools.append(pool)
         self.pool = nn.ModuleList(pools)
@@ -33,8 +33,7 @@ class PPYoloESPP(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         outs = [x]
-        for pool in self.pool:
-            outs.append(pool(x))
+        outs.extend(pool(x) for pool in self.pool)
         y = torch.cat(outs, dim=1)
         y = self.conv(y)
         return y
@@ -99,21 +98,19 @@ class PPYoloECSPPAN(nn.Module):
             if i > 0:
                 ch_in += ch_pre // 2
 
-            stage = []
-            for j in range(stage_num):
-                stage.append(
-                    (
-                        str(j),
-                        CSPStage(
-                            ch_in if j == 0 else ch_out,
-                            ch_out,
-                            block_num,
-                            activation_type=activation,
-                            spp=(spp and i == 0),
-                        ),
+            stage = [
+                (
+                    str(j),
+                    CSPStage(
+                        ch_in if j == 0 else ch_out,
+                        ch_out,
+                        block_num,
+                        activation_type=activation,
+                        spp=(spp and i == 0),
                     ),
                 )
-
+                for j in range(stage_num)
+            ]
             fpn_stages.append(nn.Sequential(collections.OrderedDict(stage)))
 
             if i < self.num_blocks - 1:
@@ -143,21 +140,19 @@ class PPYoloECSPPAN(nn.Module):
 
             ch_in = out_channels[i] + out_channels[i + 1]
             ch_out = out_channels[i]
-            stage = []
-            for j in range(stage_num):
-                stage.append(
-                    (
-                        str(j),
-                        CSPStage(
-                            ch_in if j == 0 else ch_out,
-                            ch_out,
-                            block_num,
-                            activation_type=activation,
-                            spp=False,
-                        ),
+            stage = [
+                (
+                    str(j),
+                    CSPStage(
+                        ch_in if j == 0 else ch_out,
+                        ch_out,
+                        block_num,
+                        activation_type=activation,
+                        spp=False,
                     ),
                 )
-
+                for j in range(stage_num)
+            ]
             pan_stages.append(nn.Sequential(collections.OrderedDict(stage)))
 
         self.pan_stages = nn.ModuleList(pan_stages[::-1])

@@ -165,8 +165,9 @@ class ShuffleNetV2Base(SgModule):
         # add first block with stride 2 to downsize the input
         seq = [block(input_channels, output_channels, 2)]
 
-        for _ in range(repeats - 1):
-            seq.append(block(output_channels, output_channels, 1))
+        seq.extend(
+            block(output_channels, output_channels, 1) for _ in range(repeats - 1)
+        )
         return nn.Sequential(*seq)
 
     def load_state_dict(self, state_dict, strict=True):
